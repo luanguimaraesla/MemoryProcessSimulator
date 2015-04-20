@@ -104,6 +104,8 @@ int main(void){
 
 	memory = initMemory();
 	
+	printf("\nMemory first alloc: %p\n", (void *)(memory->begin));
+	
 	printf("---------------------NOVA IMPRESSÃO---------------------");
 	printMemory(memory->begin);
 
@@ -216,10 +218,12 @@ MemoryCase * addProcess(numberOfSpaces size, Memory *memory){
 
 	holeCaseThatFits = findHoleThatFits(size, memory);
 	
-
-	if(!holeCaseThatFits)
-		return nullMemoryCase();
 	
+	if(!holeCaseThatFits){
+		printf("\nCHEGOU AQUI\n");		
+		return nullMemoryCase();
+		
+	}
 	holeThatFits = (Hole *) holeCaseThatFits->holeOrProcess;
 	
 	if(!((holeThatFits->available) - size)){
@@ -233,6 +237,19 @@ MemoryCase * addProcess(numberOfSpaces size, Memory *memory){
 		allocResponse = allocProcessCase(size, holeCaseThatFits);
 		if(holeCaseThatFits == memory->begin)
 			memory->begin = allocResponse;
+
+		printf("\n\ncase addr: %p\n", (void *) allocResponse);
+		printf("memory begin: %p\n", (void *) memory->begin);
+		if(memory->firstHole)
+			printf("memory first hole: %p\n", (void *) memory->firstHole);
+		else printf("memory first hole: NULL\n");
+		if(allocResponse->next)
+			printf("next: %p\n", (void *) allocResponse->next);
+		else    printf("next: NULL\n\n");
+		if(allocResponse->prev)
+			printf("prev: %p\n", (void *) allocResponse->prev);
+		else    printf("prev: NULL\n\n");	
+		
 		return allocResponse;
 	}	
 }
@@ -356,6 +373,7 @@ MemoryCase * endProcess(MemoryCase *processCase, Memory *memory){
 		case DESTRUCT_WITHOUT_MERGE:
 			return newHoleCase;
 		case DESTRUCT_MERGE_NEXT:
+			printf("SELECTED\n");
 			return mergeHoleCases(newHoleCase, nextHoleCase, memory);
 		case DESTRUCT_MERGE_PREV:
 			return mergeHoleCases(newHoleCase, prevHoleCase, memory);
@@ -370,20 +388,24 @@ MemoryCase * endProcess(MemoryCase *processCase, Memory *memory){
 MemoryCase * destructWithoutMerge(MemoryCase *processCase, MemoryCase *prevHoleCase, 
 				  MemoryCase *nextHoleCase, Memory *memory){
 	Hole *aHole;
-	printf("\n\n%p\n\n" , (void *) nextHoleCase);
 	processCase->type = hole;
 	aHole = makeHole( ((Process *)(processCase->holeOrProcess))->begin, 
 			    ((Process *)(processCase->holeOrProcess))->inUse,
 			    prevHoleCase, nextHoleCase);
 	processCase->holeOrProcess = (void *) aHole;
 
-	if (nextHoleCase)
-		((Hole *)(nextHoleCase->holeOrProcess))->prevHole = processCase;	
+	if (nextHoleCase){
+		((Hole *)(nextHoleCase->holeOrProcess))->prevHole = processCase;
+		printf("SELECTED A\n");
+		}	
 	else memory->lastHole = processCase;
 	if (prevHoleCase)
 		((Hole *)(prevHoleCase->holeOrProcess))->nextHole = processCase;
-	else memory->firstHole = processCase; 
+	else {memory->firstHole = processCase; 
+		printf("SELECTED B\n");}
 
+	if(processCase->prev == NULL)
+		printf("processCase->prev = NULL\n");
 	return processCase;
 }
 
@@ -416,6 +438,9 @@ MemoryCase * mergeHoleCases(MemoryCase *holeCaseA, MemoryCase *holeCaseB, Memory
 	if (memory->begin == holeCaseA)
 		memory->begin = holeCaseB;
 
+	if (memory->firstHole == holeCaseA)
+		memory->firstHole = holeCaseB;
+
 	free(holeCaseA); 
 	
 	return holeCaseB;
@@ -426,7 +451,6 @@ MemoryCase * mergeHoleCases(MemoryCase *holeCaseA, MemoryCase *holeCaseB, Memory
 MemoryCase * makeInitialMemoryCase(void){
 	MemoryCase *newMemoCase;
 	newMemoCase = newMemoryCase();
-	printf("\n\n%p\n\n" , (void *) newMemoCase);
 	newMemoCase->type = hole;
 	newMemoCase->holeOrProcess = (void *) makeInitialHole();
 	newMemoCase->next = nullMemoryCase();
