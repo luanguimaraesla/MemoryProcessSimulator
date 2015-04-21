@@ -11,9 +11,11 @@
 
 /*-------------------------TYPEDEFS---------------------------*/
 
-typedef int space;
-typedef int numberOfSpaces;
+typedef unsigned long space;
+typedef unsigned long numberOfSpaces;
+typedef unsigned long processID;
 typedef int destructType;
+typedef int menuOption;
 
 /*---------------------------ENUMS----------------------------*/
 
@@ -43,8 +45,12 @@ struct Hole{
 };
 
 struct Process{
+	processID ID;
 	space begin;
 	numberOfSpaces inUse;
+
+	struct MemoryCase *nextProcess;
+	struct MemoryCase *prevProcess;
 };
 
 struct Memory{
@@ -52,6 +58,8 @@ struct Memory{
 	struct MemoryCase *end;
 	struct MemoryCase *firstHole;
 	struct MemoryCase *lastHole;
+	struct MemoryCase *firstProcess;
+	struct MemoryCase *lastProcess;
 };
 
 typedef struct MemoryCase MemoryCase;
@@ -64,8 +72,8 @@ typedef struct Memory Memory;
 Memory * initMemory(void);
 MemoryCase *findHoleThatFits(numberOfSpaces size, Memory *memory);
 MemoryCase *addProcess(numberOfSpaces size, Memory *memory);
-MemoryCase *allocProcessCase(numberOfSpaces size, MemoryCase *holeCaseThatFits);
-MemoryCase *overwriteHole(MemoryCase *holeCaseThatFits);
+MemoryCase *allocProcessCase(numberOfSpaces size, MemoryCase *holeCaseThatFits, Memory* memory);
+MemoryCase *overwriteHole(MemoryCase *holeCaseThatFits, Memory *memory);
 
 MemoryCase * findNextHoleCase(MemoryCase *processCase);
 MemoryCase * findPrevHoleCase(MemoryCase *processCase);
@@ -73,14 +81,17 @@ MemoryCase * findPrevHoleCase(MemoryCase *processCase);
 MemoryCase *nullMemoryCase(void);
 MemoryCase *makeInitialMemoryCase(void);
 MemoryCase *newMemoryCase(void);
-MemoryCase *createAProcessCase(space begin, numberOfSpaces toUse);
+MemoryCase *createAProcessCase(space begin, numberOfSpaces toUse, MemoryCase *prevProcessCase,
+								  MemoryCase *nextProcessCase);
+MemoryCase *removeProcessOfProcessList(MemoryCase *processCase, Memory *memory);
 MemoryCase *endProcess(MemoryCase *processCase, Memory *memory);
 MemoryCase *mergeHoleCases(MemoryCase *holeCaseA, MemoryCase *holeCaseB, Memory *memory);
 MemoryCase *destructWithoutMerge(MemoryCase *processCase, MemoryCase *prevHoleCase, 
 				  MemoryCase *nextHoleCase, Memory *memory);
 
 
-Process *initProcess(space begin, numberOfSpaces inUse);
+Process *initProcess(space begin, numberOfSpaces inUse, MemoryCase *prevProcessCase,
+							MemoryCase *nextProcessCase);
 Process *newProcess(void);
 
 Hole *makeHole(space begin, numberOfSpaces available, MemoryCase *prevHole, MemoryCase *nextHole);
@@ -88,93 +99,75 @@ Hole *makeInitialHole(void);
 Hole *nullHole(void);
 Hole *newHole(void);
 
+processID newProcessID(void);
 destructType selectDestructType(MemoryCase *processCase, MemoryCase *prevHoleCase, 
 							 MemoryCase *nextHoleCase);
 void printMemory(MemoryCase *firstCase);
+void printProcessList(MemoryCase *firstProcessCase);
 
 /*---------------------------MAIN-----------------------------*/
 
 int main(void){
-	Memory *memory;
-	MemoryCase *removeeAux;
-	MemoryCase *removeeAux2;
-	MemoryCase *removeeAux3;
-	MemoryCase *removeeAux4;
-	MemoryCase *removeeAux5;	
-
+	Memory *memory;	
+	MemoryCase *test[5];	
+	
 	memory = initMemory();
 	
-	printf("\nMemory first alloc: %p\n", (void *)(memory->begin));
+	test[0] = addProcess(10, memory);
+	printf("\n-------------------------\n");
+	printMemory(memory->begin);
+
+	test[1] = addProcess(10, memory);
+	printf("\n-------------------------\n");
+	printMemory(memory->begin);
+
+	test[2] = addProcess(10, memory);
+	printf("\n-------------------------\n");
+	printMemory(memory->begin);
+
+	printf("\n\n\n*****************PROCESS LIST****\n");
+	printProcessList(memory->firstProcess);
+	printf("\n*******************************\n");
+
+	test[3] = addProcess(170, memory);
+	printf("\n-------------------------\n");
+	printMemory(memory->begin);
+
+	printf("\n\n\n*****************PROCESS LIST****\n");
+	printProcessList(memory->firstProcess);
+	printf("\n*******************************\n");
+
+
+	endProcess(test[2], memory);
+	printf("\n-------------------------\n");
+	printMemory(memory->begin);
+
+	printf("\n\n\n*****************PROCESS LIST****\n");
+	printProcessList(memory->firstProcess);
+	printf("\n*******************************\n");
+
+	endProcess(test[0], memory);
+	printf("\n-------------------------\n");
+	printMemory(memory->begin);
+
+	printf("\n\n\n*****************PROCESS LIST****\n");
+	printProcessList(memory->firstProcess);
+	printf("\n*******************************\n");
+
+	endProcess(test[3], memory);
+	printf("\n-------------------------\n");
+	printMemory(memory->begin);
+
+	printf("\n\n\n*****************PROCESS LIST****\n");
+	printProcessList(memory->firstProcess);
+	printf("\n*******************************\n");
+
 	
-	printf("---------------------NOVA IMPRESSÃO---------------------");
+	endProcess(test[1], memory);
+	printf("\n-------------------------\n");
 	printMemory(memory->begin);
-
-	removeeAux3 = addProcess(10, memory);
-	printf("---------------------NOVA IMPRESSÃO---------------------");
-	printMemory(memory->begin);
-
-	endProcess(removeeAux3, memory);
-	printf("---------------------NOVA IMPRESSÃO---------------------");
-	printMemory(memory->begin);
-	
-	removeeAux4 = addProcess(20, memory);
-	printf("---------------------NOVA IMPRESSÃO---------------------");
-	printMemory(memory->begin);
-	
-	removeeAux = addProcess(50, memory);
-	printf("---------------------NOVA IMPRESSÃO---------------------");
-	printMemory(memory->begin);
-
-	removeeAux2 = addProcess(70, memory);
-	printf("---------------------NOVA IMPRESSÃO---------------------");
-	printMemory(memory->begin);
-
-	endProcess(removeeAux, memory);
-	printf("---------------------NOVA IMPRESSÃO---------------------");
-	printMemory(memory->begin);
-	
-	removeeAux5 = addProcess(10, memory);
-	printf("---------------------NOVA IMPRESSÃO---------------------");
-	printMemory(memory->begin);
-
-	endProcess(removeeAux2, memory);
-	printf("---------------------NOVA IMPRESSÃO---------------------");
-	printMemory(memory->begin);
-
-	endProcess(removeeAux4, memory);
-	printf("-----------------gg----NOVA IMPRESSÃO---------------------");
-	printMemory(memory->begin);
-
-	endProcess(removeeAux5, memory);
-	printf("---------------------NOVA IMPRESSÃO---------------------");
-	printMemory(memory->begin);
-
-	removeeAux2 = addProcess(70, memory);
-	printf("---------------------NOVA IMPRESSÃO---------------------");
-	printMemory(memory->begin);
-
-	endProcess(removeeAux2, memory);
-	printf("---------------------NOVA IMPRESSÃO---------------------");
 		
-	printMemory(memory->begin);
-
-
 	
-	removeeAux2 = addProcess(200, memory);
-	printf("---------------------NOVA IMPRESSÃO---------------------");
-	printMemory(memory->begin);
-
-	endProcess(removeeAux2, memory);
-	printf("---------------------NOVA IMPRESSÃO---------------------");
-	printMemory(memory->begin);
-
-	removeeAux2 = addProcess(200, memory);
-	printf("---------------------NOVA IMPRESSÃO---------------------");
-	printMemory(memory->begin);
-
-	endProcess(removeeAux2, memory);
-	printf("---------------------NOVA IMPRESSÃO---------------------");
-	printMemory(memory->begin);
 	
 
 	return 0;
@@ -182,21 +175,50 @@ int main(void){
 
 /*---------------------------MENU-----------------------------*/
 
+/*menuOption playMenu(void){
+	
+}
+
+void showOptions(){
+
+}*/
+
+menuOption getMenuOption(menuOption firstValue, menuOption lastValue){
+	menuOption selected;
+		
+	do{
+		scanf("%d", &selected);
+	}while (selected < firstValue || selected > lastValue);
+
+	return selected;
+}
+
 /*----------------------PRINT FUNCTIONS-----------------------*/
 
 void printMemory(MemoryCase *firstCase){
 	if(firstCase){
 		if(firstCase->type == hole){
 			printf("\n----> HOLE\n");
-			printf("Size: %d\n", ((Hole *)(firstCase->holeOrProcess))->available);
-			printf("Begin: %d\n", ((Hole *)(firstCase->holeOrProcess))->begin);
+			printf("Size: %lu\n", ((Hole *)(firstCase->holeOrProcess))->available);
+			printf("Begin: %lu\n", ((Hole *)(firstCase->holeOrProcess))->begin);
 		}
 		else{
 			printf("\n----> PROCESS\n");
-			printf("Size: %d\n", ((Process *)(firstCase->holeOrProcess))->inUse);
-			printf("Begin: %d\n", ((Process *)(firstCase->holeOrProcess))->begin);
+			printf("ID: %lu\n", ((Process *)(firstCase->holeOrProcess))->ID);
+			printf("Size: %lu\n", ((Process *)(firstCase->holeOrProcess))->inUse);
+			printf("Begin: %lu\n", ((Process *)(firstCase->holeOrProcess))->begin);
 		}
 		printMemory(firstCase->next);
+	}
+}
+
+void printProcessList(MemoryCase *firstProcessCase){
+	if(firstProcessCase){	
+		printf("\n----> PROCESS\n");
+		printf("ID: %lu\n", ((Process *)(firstProcessCase->holeOrProcess))->ID);
+		printf("Size: %lu\n", ((Process *)(firstProcessCase->holeOrProcess))->inUse);
+		printf("Begin: %lu\n", ((Process *)(firstProcessCase->holeOrProcess))->begin);
+		printProcessList(((Process *)(firstProcessCase->holeOrProcess))->nextProcess);
 	}
 }
 
@@ -235,10 +257,10 @@ MemoryCase * addProcess(numberOfSpaces size, Memory *memory){
 			memory->firstHole = holeThatFits->nextHole;
 		else if(holeCaseThatFits == memory->lastHole)
 			memory->lastHole = holeThatFits->prevHole;
-		return overwriteHole(holeCaseThatFits);		
+		return overwriteHole(holeCaseThatFits, memory);		
 	}
 	else{
-		allocResponse = allocProcessCase(size, holeCaseThatFits);
+		allocResponse = allocProcessCase(size, holeCaseThatFits, memory);
 		if(holeCaseThatFits == memory->begin)
 			memory->begin = allocResponse;
 		
@@ -277,12 +299,21 @@ MemoryCase *findHoleThatFits(numberOfSpaces size, Memory *memory){
 	return smallerThatFits;
 }
 
-MemoryCase *allocProcessCase(numberOfSpaces size, MemoryCase *holeCaseThatFits){
+MemoryCase *allocProcessCase(numberOfSpaces size, MemoryCase *holeCaseThatFits, Memory *memory){
 	MemoryCase *processCase;
 	Hole *theHole;
 
 	theHole =  (Hole *) holeCaseThatFits->holeOrProcess;
-	processCase = createAProcessCase(theHole->begin, size);
+	
+	processCase = createAProcessCase(theHole->begin, size, memory->lastProcess, nullMemoryCase());
+	
+	if(memory->lastProcess)
+		((Process *)(memory->lastProcess->holeOrProcess))->nextProcess = processCase;	
+	memory->lastProcess = processCase;
+
+	if(!memory->firstProcess)
+		memory->firstProcess = processCase;
+	
 
 	(theHole->available) -= size;
 	(theHole->begin) += size;
@@ -297,7 +328,7 @@ MemoryCase *allocProcessCase(numberOfSpaces size, MemoryCase *holeCaseThatFits){
 	return processCase; 
 }
 
-MemoryCase * overwriteHole(MemoryCase *holeCaseThatFits){
+MemoryCase * overwriteHole(MemoryCase *holeCaseThatFits, Memory *memory){
 	Hole *theHole;
 	theHole =  (Hole *) holeCaseThatFits->holeOrProcess;
 	
@@ -307,10 +338,20 @@ MemoryCase * overwriteHole(MemoryCase *holeCaseThatFits){
 		((Hole *)(theHole->nextHole->holeOrProcess))->prevHole = theHole->prevHole;	
 
 	holeCaseThatFits->type = process;
-	holeCaseThatFits->holeOrProcess = (void *) initProcess(theHole->begin, theHole->available);
+	holeCaseThatFits->holeOrProcess = (void *) initProcess(theHole->begin, theHole->available,
+								memory->lastProcess, nullMemoryCase());
+
+	if(memory->lastProcess)
+		((Process *)(memory->lastProcess->holeOrProcess))->nextProcess = holeCaseThatFits;	
+	memory->lastProcess = holeCaseThatFits;
+
+	if(!memory->firstProcess)
+		memory->firstProcess = holeCaseThatFits;
 
 	return holeCaseThatFits;
 }
+
+
 
 MemoryCase * findNextHoleCase(MemoryCase *processCase){
 	if (processCase == nullMemoryCase()) return nullMemoryCase();	
@@ -381,18 +422,35 @@ MemoryCase * endProcess(MemoryCase *processCase, Memory *memory){
 MemoryCase * destructWithoutMerge(MemoryCase *processCase, MemoryCase *prevHoleCase, 
 				  MemoryCase *nextHoleCase, Memory *memory){
 	Hole *aHole;
-	processCase->type = hole;
+	MemoryCase *holeCase;
+
+	holeCase = removeProcessOfProcessList(processCase, memory);	
+	holeCase->type = hole;
+
 	aHole = makeHole( ((Process *)(processCase->holeOrProcess))->begin, 
 			    ((Process *)(processCase->holeOrProcess))->inUse,
 			    prevHoleCase, nextHoleCase);
-	processCase->holeOrProcess = (void *) aHole;
+	holeCase->holeOrProcess = (void *) aHole;
 
 	if (nextHoleCase)
-		((Hole *)(nextHoleCase->holeOrProcess))->prevHole = processCase;	
-	else memory->lastHole = processCase;
+		((Hole *)(nextHoleCase->holeOrProcess))->prevHole = holeCase;	
+	else memory->lastHole = holeCase;
 	if (prevHoleCase)
-		((Hole *)(prevHoleCase->holeOrProcess))->nextHole = processCase;
-	else memory->firstHole = processCase;
+		((Hole *)(prevHoleCase->holeOrProcess))->nextHole = holeCase;
+	else memory->firstHole = holeCase;
+
+	return holeCase;
+}
+
+MemoryCase * removeProcessOfProcessList(MemoryCase *processCase, Memory *memory){
+
+	if(((Process *)(processCase->holeOrProcess))->prevProcess)
+		((Process*)(((Process *)(processCase->holeOrProcess))->prevProcess->holeOrProcess))->nextProcess = ((Process *)(processCase->holeOrProcess))->nextProcess;
+	else memory->firstProcess = ((Process *)(processCase->holeOrProcess))->nextProcess;
+
+	if(((Process *)(processCase->holeOrProcess))->nextProcess)
+		((Process*)(((Process *)(processCase->holeOrProcess))->nextProcess->holeOrProcess))->prevProcess = ((Process *)(processCase->holeOrProcess))->prevProcess;
+	else memory->lastProcess = ((Process *)(processCase->holeOrProcess))->prevProcess;
 
 	return processCase;
 }
@@ -446,13 +504,16 @@ MemoryCase * makeInitialMemoryCase(void){
 	return newMemoCase;
 }
 
-MemoryCase * createAProcessCase(space begin, numberOfSpaces toUse){
+MemoryCase * createAProcessCase(space begin, numberOfSpaces toUse, MemoryCase *prevProcessCase,
+								   MemoryCase *nextProcessCase){
 	MemoryCase *newProcessCase;
 	newProcessCase = newMemoryCase();
 	newProcessCase->type = process;
 	newProcessCase->next = nullMemoryCase();
 	newProcessCase->prev = nullMemoryCase();
-	newProcessCase->holeOrProcess = (void *) initProcess(begin, toUse);
+	newProcessCase->holeOrProcess = (void *) initProcess(begin, toUse, 
+								prevProcessCase,
+								nextProcessCase);
 
 	return newProcessCase;
 }
@@ -467,11 +528,15 @@ MemoryCase *newMemoryCase(void){
 
 /*---------------------PROCESS FUNCTIONS----------------------*/
 
-Process *initProcess(space begin, numberOfSpaces inUse){
+Process *initProcess(space begin, numberOfSpaces inUse, MemoryCase *prevProcessCase,
+							MemoryCase *nextProcessCase){
 	Process * aProcess;
 	aProcess = newProcess();
 	aProcess->begin = begin;
 	aProcess->inUse = inUse;
+	aProcess->ID = newProcessID();
+	aProcess->prevProcess = prevProcessCase;
+	aProcess->nextProcess = nextProcessCase;
 
 	return aProcess;
 }
@@ -480,6 +545,10 @@ Process *newProcess(void){
 	return (Process *) malloc (sizeof(Process));
 }
 
+processID newProcessID(void){
+	static processID numberOfProcess = 0;
+	return numberOfProcess++;
+}
 /*-----------------------HOLE FUNCTIONS-----------------------*/
 
 Hole *makeHole(space begin, numberOfSpaces available,MemoryCase *prevHole, MemoryCase *nextHole){
@@ -513,7 +582,7 @@ Hole *newHole(void){
 to do
 
 make a findHoleThatFits function with a timer to limit the unnecessary system wait for a ideal case size
-
+algorítmo duplo de busca <<<<< e >>>>>> diminuir consideravelmente o tempo de busca em uma memoria linear
 
 */
 
