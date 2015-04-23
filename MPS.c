@@ -143,6 +143,9 @@ ProcessManager * nullProcessManager(void);
 ProcessManager * createProcessManager(MemoryCase *head, MemoryCase *finish,
 					  ProcessManager *nextProcessManager,
 					  ProcessManager *prevProcessManager);
+ProcessManager * mountProcessManager(MemoryCase *head, MemoryCase *finish);
+numberOfSpaces getProcessManagerSize(ProcessManager *processManager);
+ProcessManager * allocMasterProcessManager(ProcessManager *toAlloc, MasterProcessManager * masterProcessManager);
 
 /*---------------------------MAIN-----------------------------*/
 
@@ -214,10 +217,41 @@ MasterProcessManager * initMasterProcessManager(void){
 	return newMasterProcessManager;
 }
 
+ProcessManager * allocMasterProcessManager(ProcessManager *toAlloc, MasterProcessManager * masterProcessManager){
+	if (masterProcessManager->processCounter == 0){
+		masterProcessManager->firstProcessManager = toAlloc;
+		masterProcessManager->lastProcessManager = toAlloc;
+		toAlloc->nextProcessManager = nullProcessManager();
+		toAlloc->prevProcessManager = nullProcessManager();
+	}
+	else{
+		toAlloc->nextProcessManager = nullProcessManager();
+		toAlloc->prevProcessManager = masterProcessManager->lastProcessManager;
+		toAlloc->prevProcessManager->nextProcessManager = toAlloc;
+		masterProcessManager->lastProcessManager = toAlloc; 
+	}
+	masterProcessManager->inUse+= getProcessManagerSize(toAlloc);
+	(masterProcessManager->processCounter)++;
+
+	return toAlloc;
+}
+
 /*------------------------EACH PROCESS MANAGER FUNCTIONS-------------------------*/
 
 ProcessManager * nullProcessManager(void){
 	return NULL;
+}
+
+numberOfSpaces getProcessManagerSize(ProcessManager *processManager){
+	MemoryCase *runner = processManager->head;
+	numberOfSpaces size = 0;
+
+	while(1){
+		size += ((Process *)(runner->holeOrProcess))->inUse;
+		if(runner == processManager->finish) break;
+		runner = ((Process *)(runner->holeOrProcess))->nextProcess;
+	}
+	return size;
 }
 
 ProcessManager * createProcessManager(MemoryCase *head, MemoryCase *finish,
