@@ -53,9 +53,6 @@ struct Process{
 
 	struct MemoryCase *nextProcess;
 	struct MemoryCase *prevProcess;
-
-	struct MemoryCase *selfNextLink;
-	struct MemoryCase *selfPrevLink;
 };
 
 struct EachProcessManager{
@@ -236,6 +233,12 @@ ProcessManager * createProcessManager(MemoryCase *head, MemoryCase *finish,
 	newProcessManager->ID = ((Process *)(head->holeOrProcess))->ID;
 
 	return newProcessManager;
+}
+
+ProcessManager * mountProcessManager(MemoryCase *head, MemoryCase *finish){
+	ProcessManager *mountedProcessManager;
+	mountedProcessManager = createProcessManager(head, finish, nullProcessManager(), nullProcessManager());
+	return mountedProcessManager;
 }
 
 /*------------------------MASTER MEMORY FUNCTIONS------------------------*/
