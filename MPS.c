@@ -104,7 +104,7 @@ typedef struct MasterMemory MasterMemory;
 
 Memory * initMemory(void);
 MemoryCase *findHoleThatFits(numberOfSpaces size, Memory *memory);
-MemoryCase *addProcess(numberOfSpaces size, Memory *memory);
+MemoryCase *addProcess(numberOfSpaces size, MasterMemory *masterMemory);
 MemoryCase *allocProcessCase(numberOfSpaces size, MemoryCase *holeCaseThatFits, Memory* memory);
 MemoryCase *overwriteHole(MemoryCase *holeCaseThatFits, Memory *memory);
 
@@ -267,33 +267,47 @@ Memory * initMemory(void){
 	return newMemory;
 }
 
-MemoryCase * addProcess(numberOfSpaces size, Memory *memory){	
+MemoryCase * addProcess(numberOfSpaces size, MasterMemory* masterMemory){	
+	numberOfSpaces remaning = size;
+	MemoryCase *runner = masterMemory->memory->begin;
+	MemoryCase *processListBegin = runner;
+	Hole *runnerHole;	
 	MemoryCase *holeCaseThatFits;
-	MemoryCase *allocResponse;
-	Hole *holeThatFits;	
+	MemoryCase *allocResponse;	
 
-	holeCaseThatFits = findHoleThatFits(size, memory);
-	
+	holeCaseThatFits = findHoleThatFits(size, masterMemory->memory);
 	
 	if(!holeCaseThatFits)		
 		return nullMemoryCase();
-		
-	holeThatFits = (Hole *) holeCaseThatFits->holeOrProcess;	
 
-	if(!((holeThatFits->available) - size)){
-		if(holeCaseThatFits == memory->firstHole)
-			memory->firstHole = holeThatFits->nextHole;
-		else if(holeCaseThatFits == memory->lastHole)
-			memory->lastHole = holeThatFits->prevHole;
-		return overwriteHole(holeCaseThatFits, memory);		
+	while(1){
+		runnerHole = (Hole *) runner->holeOrProcess;
+		if(runnerHole->available < remaning){
+			remaning-=runnerHole->available;
+			if(runner == masterMemory->memory->firstHole)
+				masterMemory->memory->firstHole = runnerHole->nextHole;
+			overwriteHole(holeCaseThatFits, masterMemory->memory);		
+		}
+		else if(runnerHole->available == remaning){
+			if(runner == masterMemory->memory->firstHole)
+				masterMemory->memory->firstHole = runnerHole->nextHole;
+			if(runner == masterMemory->memory->lastHole)
+				masterMemory->memory->lastHole = runnerHole->prevHole;
+
+			overwriteHole(holeCaseThatFits, masterMemory->memory);
+			break;
+		}
+		else{	
+			allocResponse = allocProcessCase(size, holeCaseThatFits, masterMemory->memory);
+			if(runner == masterMemory->memory->begin)
+				masterMemory->memory->begin = allocResponse;
+			/*return allocResponse;*/
+			break;
+		}
+		runner = runnerHole->nextHole;
 	}
-	else{
-		allocResponse = allocProcessCase(size, holeCaseThatFits, memory);
-		if(holeCaseThatFits == memory->begin)
-			memory->begin = allocResponse;
-		
-		return allocResponse;
-	}	
+
+	return processListBegin;
 }
 
 MemoryCase *findHoleThatFits(numberOfSpaces size, Memory *memory){	
@@ -309,7 +323,7 @@ MemoryCase *findHoleThatFits(numberOfSpaces size, Memory *memory){
 			currentHoleCase = currentHole->nextHole;
 			currentHole = (Hole *) currentHoleCase->holeOrProcess;
 		}
-		else exit(1);
+		else return nullMemoryCase();
 	}
 
 	return currentHoleCase;
