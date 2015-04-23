@@ -118,25 +118,19 @@ MemoryCase *endProcess(MemoryCase *processCase, Memory *memory);
 MemoryCase *mergeHoleCases(MemoryCase *holeCaseA, MemoryCase *holeCaseB, Memory *memory);
 MemoryCase *destructWithoutMerge(MemoryCase *processCase, MemoryCase *prevHoleCase, 
 				  MemoryCase *nextHoleCase, Memory *memory);
-
-
 Process *initProcess(space begin, numberOfSpaces inUse, MemoryCase *prevProcessCase,
 							MemoryCase *nextProcessCase);
 Process *newProcess(void);
-
 Hole *makeHole(space begin, numberOfSpaces available, MemoryCase *prevHole, MemoryCase *nextHole);
 Hole *makeInitialHole(void);
 Hole *nullHole(void);
 Hole *newHole(void);
-
 processID newProcessID(void);
 destructType selectDestructType(MemoryCase *processCase, 
 				MemoryCase *prevHoleCase, 
 				MemoryCase *nextHoleCase);
-
 void printMemory(MemoryCase *firstCase);
 void printProcessList(MemoryCase *firstProcessCase);
-
 MasterMemory * initMasterMemory(void);
 MasterProcessManager * initMasterProcessManager(void);
 ProcessManager * nullProcessManager(void);
@@ -145,7 +139,8 @@ ProcessManager * createProcessManager(MemoryCase *head, MemoryCase *finish,
 					  ProcessManager *prevProcessManager);
 ProcessManager * mountProcessManager(MemoryCase *head, MemoryCase *finish);
 numberOfSpaces getProcessManagerSize(ProcessManager *processManager);
-ProcessManager * allocMasterProcessManager(ProcessManager *toAlloc, MasterProcessManager * masterProcessManager);
+ProcessManager * allocProcessManager(ProcessManager *toAlloc, MasterProcessManager * masterProcessManager);
+MemoryCase * removeMasterProcessManager(ProcessManager *toRemove, MasterProcessManager *masterProcessManager);
 
 /*---------------------------MAIN-----------------------------*/
 
@@ -217,7 +212,7 @@ MasterProcessManager * initMasterProcessManager(void){
 	return newMasterProcessManager;
 }
 
-ProcessManager * allocMasterProcessManager(ProcessManager *toAlloc, MasterProcessManager * masterProcessManager){
+ProcessManager * allocProcessManager(ProcessManager *toAlloc, MasterProcessManager * masterProcessManager){
 	if (masterProcessManager->processCounter == 0){
 		masterProcessManager->firstProcessManager = toAlloc;
 		masterProcessManager->lastProcessManager = toAlloc;
@@ -253,9 +248,15 @@ MemoryCase * removeMasterProcessManager(ProcessManager *toRemove, MasterProcessM
 	masterProcessManager->inUse-= getProcessManagerSize(toRemove);
 	(masterProcessManager->processCounter)--;
 	free(toRemove);
+
 	return firstMemoryCaseAtList;
 }
 
+ProcessManager * syncMasterProcessManager(MemoryCase *head, MemoryCase *finish, MasterProcessManager *masterProcessManager){
+	ProcessManager *newProcessManager;
+	newProcessManager = mountProcessManager(head, finish);
+	return allocProcessManager(newProcessManager, masterProcessManager);
+}
 /*------------------------EACH PROCESS MANAGER FUNCTIONS-------------------------*/
 
 ProcessManager * nullProcessManager(void){
@@ -363,7 +364,7 @@ MemoryCase * addProcess(numberOfSpaces size, MasterMemory* masterMemory){
 		}
 		runner = runnerHole->nextHole;
 	}
-
+	
 	return processListBegin;
 }
 
