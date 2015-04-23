@@ -14,8 +14,10 @@
 typedef unsigned long space;
 typedef unsigned long numberOfSpaces;
 typedef unsigned long processID;
+typedef unsigned long counter;
 typedef int destructType;
 typedef int menuOption;
+
 
 /*---------------------------ENUMS----------------------------*/
 
@@ -51,6 +53,29 @@ struct Process{
 
 	struct MemoryCase *nextProcess;
 	struct MemoryCase *prevProcess;
+
+	struct MemoryCase *selfNextLink;
+	struct MemoryCase *selfPrevLink;
+};
+
+struct EachProcessManager{
+	processID ID;
+	space begin;
+	numberOfSpaces size;
+
+	struct MemoryCase *head;
+	struct MemoryCase *end;
+
+	struct EachProcessManager * prevProcessManager;
+	struct EachProcessManager * nextProcessManager;
+};
+
+struct MasterProcessManager{
+	counter processCounter;
+	numberOfSpaces inUse;
+	
+	struct EachProcessManager * firstProcessManager;
+	struct EachProcessManager * lastProcessManager;
 };
 
 struct Memory{
@@ -62,10 +87,18 @@ struct Memory{
 	struct MemoryCase *lastProcess;
 };
 
+struct MasterMemory{
+	struct Memory *memory;
+	struct MasterProcessManager *masterProcessManager;
+};
+
 typedef struct MemoryCase MemoryCase;
 typedef struct Hole Hole;
 typedef struct Process Process;
+typedef struct EachProcessManager ProcessManager;
+typedef struct MasterProcessManager MasterProcessManager;
 typedef struct Memory Memory;
+typedef struct MasterMemory MasterMemory;
 
 /*--------------------FUNCTIONS HEADERS-----------------------*/
 
@@ -100,75 +133,23 @@ Hole *nullHole(void);
 Hole *newHole(void);
 
 processID newProcessID(void);
-destructType selectDestructType(MemoryCase *processCase, MemoryCase *prevHoleCase, 
-							 MemoryCase *nextHoleCase);
+destructType selectDestructType(MemoryCase *processCase, 
+				MemoryCase *prevHoleCase, 
+				MemoryCase *nextHoleCase);
+
 void printMemory(MemoryCase *firstCase);
 void printProcessList(MemoryCase *firstProcessCase);
+
+MasterMemory * initMasterMemory(void);
+MasterProcessManager * initMasterProcessManager(void);
+ProcessManager * nullProcessManager(void);
+ProcessManager * createProcessManager(MemoryCase *begin, MemoryCase *end,
+					  ProcessManager *nextProcessManager,
+					  ProcessManager *prevProcessManager);
 
 /*---------------------------MAIN-----------------------------*/
 
 int main(void){
-	Memory *memory;	
-	MemoryCase *test[5];	
-	
-	memory = initMemory();
-	
-	test[0] = addProcess(10, memory);
-	printf("\n-------------------------\n");
-	printMemory(memory->begin);
-
-	test[1] = addProcess(10, memory);
-	printf("\n-------------------------\n");
-	printMemory(memory->begin);
-
-	test[2] = addProcess(10, memory);
-	printf("\n-------------------------\n");
-	printMemory(memory->begin);
-
-	printf("\n\n\n*****************PROCESS LIST****\n");
-	printProcessList(memory->firstProcess);
-	printf("\n*******************************\n");
-
-	test[3] = addProcess(170, memory);
-	printf("\n-------------------------\n");
-	printMemory(memory->begin);
-
-	printf("\n\n\n*****************PROCESS LIST****\n");
-	printProcessList(memory->firstProcess);
-	printf("\n*******************************\n");
-
-
-	endProcess(test[2], memory);
-	printf("\n-------------------------\n");
-	printMemory(memory->begin);
-
-	printf("\n\n\n*****************PROCESS LIST****\n");
-	printProcessList(memory->firstProcess);
-	printf("\n*******************************\n");
-
-	endProcess(test[0], memory);
-	printf("\n-------------------------\n");
-	printMemory(memory->begin);
-
-	printf("\n\n\n*****************PROCESS LIST****\n");
-	printProcessList(memory->firstProcess);
-	printf("\n*******************************\n");
-
-	endProcess(test[3], memory);
-	printf("\n-------------------------\n");
-	printMemory(memory->begin);
-
-	printf("\n\n\n*****************PROCESS LIST****\n");
-	printProcessList(memory->firstProcess);
-	printf("\n*******************************\n");
-
-	
-	endProcess(test[1], memory);
-	printf("\n-------------------------\n");
-	printMemory(memory->begin);
-		
-	
-	
 
 	return 0;
 }
@@ -220,6 +201,53 @@ void printProcessList(MemoryCase *firstProcessCase){
 		printf("Begin: %lu\n", ((Process *)(firstProcessCase->holeOrProcess))->begin);
 		printProcessList(((Process *)(firstProcessCase->holeOrProcess))->nextProcess);
 	}
+}
+
+
+/*------------------------MASTER PROCESS MANAGER FUNCTIONS-----------------------*/
+
+MasterProcessManager * initMasterProcessManager(void){
+	MasterProcessManager * newMasterProcessManager;
+	newMasterProcessManager = (MasterProcessManager *) malloc (sizeof(MasterProcessManager));
+	newMasterProcessManager->processCounter = 0;
+	newMasterProcessManager->inUse = 0;
+	newMasterProcessManager->firstProcessManager = nullProcessManager();
+	newMasterProcessManager->lastProcessManager = nullProcessManager();
+
+	return newMasterProcessManager;
+}
+
+/*------------------------EACH PROCESS MANAGER FUNCTIONS-------------------------*/
+
+ProcessManager * nullProcessManager(void){
+	return NULL;
+}
+
+ProcessManager * createProcessManager(MemoryCase *head, MemoryCase *end,
+					  ProcessManager *nextProcessManager,
+					  ProcessManager *prevProcessManager){
+	
+	ProcessManager * newProcessManager;
+	newProcessManager = (ProcessManager *) malloc (sizeof(ProcessManager));
+	newProcessManager->head = head;
+	newProcessManager->end = end;
+	newProcessManager->nextProcessManager = nextProcessManager;
+	newProcessManager->prevProcessManager = prevProcessManager;
+	newProcessManager->ID = ((Process *)(head->holeOrProcess))->ID;
+
+	return newProcessManager;
+}
+
+/*------------------------MASTER MEMORY FUNCTIONS------------------------*/
+
+MasterMemory * initMasterMemory(void){
+	MasterMemory *newMasterMemory;
+
+	newMasterMemory = (MasterMemory *) malloc (sizeof(MasterMemory));
+	newMasterMemory->memory = initMemory();
+	newMasterMemory->masterProcessManager = initMasterProcessManager();
+
+	return newMasterMemory;
 }
 
 /*---------------------MEMORY FUNCTIONS-----------------------*/
@@ -512,8 +540,8 @@ MemoryCase * createAProcessCase(space begin, numberOfSpaces toUse, MemoryCase *p
 	newProcessCase->next = nullMemoryCase();
 	newProcessCase->prev = nullMemoryCase();
 	newProcessCase->holeOrProcess = (void *) initProcess(begin, toUse, 
-								prevProcessCase,
-								nextProcessCase);
+							     prevProcessCase,
+							     nextProcessCase);
 
 	return newProcessCase;
 }
@@ -574,17 +602,7 @@ Hole *newHole(void){
 	return (Hole *) malloc (sizeof(Hole));
 }
 
-/*------------------------AUX FUNCTIONS-----------------------*/
 
-
-
-/*
-to do
-
-make a findHoleThatFits function with a timer to limit the unnecessary system wait for a ideal case size
-algorítmo duplo de busca <<<<< e >>>>>> diminuir consideravelmente o tempo de busca em uma memoria linear
-
-*/
 
 
 
