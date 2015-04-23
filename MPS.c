@@ -64,7 +64,7 @@ struct EachProcessManager{
 	numberOfSpaces size;
 
 	struct MemoryCase *head;
-	struct MemoryCase *end;
+	struct MemoryCase *finish;
 
 	struct EachProcessManager * prevProcessManager;
 	struct EachProcessManager * nextProcessManager;
@@ -143,7 +143,7 @@ void printProcessList(MemoryCase *firstProcessCase);
 MasterMemory * initMasterMemory(void);
 MasterProcessManager * initMasterProcessManager(void);
 ProcessManager * nullProcessManager(void);
-ProcessManager * createProcessManager(MemoryCase *begin, MemoryCase *end,
+ProcessManager * createProcessManager(MemoryCase *head, MemoryCase *finish,
 					  ProcessManager *nextProcessManager,
 					  ProcessManager *prevProcessManager);
 
@@ -223,14 +223,14 @@ ProcessManager * nullProcessManager(void){
 	return NULL;
 }
 
-ProcessManager * createProcessManager(MemoryCase *head, MemoryCase *end,
+ProcessManager * createProcessManager(MemoryCase *head, MemoryCase *finish,
 					  ProcessManager *nextProcessManager,
 					  ProcessManager *prevProcessManager){
 	
 	ProcessManager * newProcessManager;
 	newProcessManager = (ProcessManager *) malloc (sizeof(ProcessManager));
 	newProcessManager->head = head;
-	newProcessManager->end = end;
+	newProcessManager->finish = finish;
 	newProcessManager->nextProcessManager = nextProcessManager;
 	newProcessManager->prevProcessManager = prevProcessManager;
 	newProcessManager->ID = ((Process *)(head->holeOrProcess))->ID;
@@ -297,34 +297,22 @@ MemoryCase * addProcess(numberOfSpaces size, Memory *memory){
 }
 
 MemoryCase *findHoleThatFits(numberOfSpaces size, Memory *memory){	
-	MemoryCase *smallerThatFits;
-	MemoryCase *currentHoleCase = memory->firstHole;	
-	Hole *currentHole, *smallerHole;
+	numberOfSpaces remaning;
+	Hole * currentHole;
+	MemoryCase *currentHoleCase = memory->firstHole;
 	currentHole = (Hole *) memory->firstHole->holeOrProcess;
-				
-	while(currentHoleCase && currentHole->available < size){
-		if (currentHole->nextHole)
-			currentHole = (Hole *) currentHole->nextHole->holeOrProcess;
-		currentHoleCase = ((Hole *)(currentHoleCase->holeOrProcess))->nextHole;
-	}
-	if(!currentHoleCase) {		
-		return nullMemoryCase();
-		
-	}
-
-	smallerThatFits = currentHoleCase;
-	smallerHole = currentHole;
-	while(currentHoleCase){
-		currentHole = (Hole *) currentHoleCase->holeOrProcess;
-		if (currentHole->available >= 	     size 	&& 
-		    currentHole->available < smallerHole->available){
-			smallerHole = currentHole;
-			smallerThatFits = currentHoleCase;
+	
+	remaning = size;		
+	while(currentHoleCase && currentHole->available < remaning){
+		remaning -= currentHole->available;
+		if(currentHole->nextHole){
+			currentHoleCase = currentHole->nextHole;
+			currentHole = (Hole *) currentHoleCase->holeOrProcess;
 		}
-		currentHoleCase = ((Hole *)(currentHoleCase->holeOrProcess))->nextHole;
+		else exit(1);
 	}
 
-	return smallerThatFits;
+	return currentHoleCase;
 }
 
 MemoryCase *allocProcessCase(numberOfSpaces size, MemoryCase *holeCaseThatFits, Memory *memory){
