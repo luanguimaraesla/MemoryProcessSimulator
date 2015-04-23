@@ -236,6 +236,26 @@ ProcessManager * allocMasterProcessManager(ProcessManager *toAlloc, MasterProces
 	return toAlloc;
 }
 
+MemoryCase * removeMasterProcessManager(ProcessManager *toRemove, MasterProcessManager *masterProcessManager){
+	MemoryCase *firstMemoryCaseAtList;	
+		
+	if(masterProcessManager->firstProcessManager == toRemove)
+		masterProcessManager->firstProcessManager = toRemove->nextProcessManager;
+	else
+		toRemove->prevProcessManager->nextProcessManager = toRemove->nextProcessManager;
+	
+	if(masterProcessManager->lastProcessManager == toRemove)
+		masterProcessManager->lastProcessManager = toRemove->prevProcessManager;
+	else
+		toRemove->nextProcessManager->prevProcessManager = toRemove->prevProcessManager;
+
+	firstMemoryCaseAtList = toRemove->head;
+	masterProcessManager->inUse-= getProcessManagerSize(toRemove);
+	(masterProcessManager->processCounter)--;
+	free(toRemove);
+	return firstMemoryCaseAtList;
+}
+
 /*------------------------EACH PROCESS MANAGER FUNCTIONS-------------------------*/
 
 ProcessManager * nullProcessManager(void){
