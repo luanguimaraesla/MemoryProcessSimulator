@@ -57,7 +57,6 @@ struct Process{
 
 struct EachProcessManager{
 	processID ID;
-	space begin;
 	numberOfSpaces size;
 
 	struct MemoryCase *head;
@@ -130,7 +129,7 @@ destructType selectDestructType(MemoryCase *processCase,
 				MemoryCase *prevHoleCase, 
 				MemoryCase *nextHoleCase);
 void printMemory(MemoryCase *firstCase);
-void printProcessList(MemoryCase *firstProcessCase);
+void printProcessList(ProcessManager *firstProcessManager);
 MasterMemory * initMasterMemory(void);
 MasterProcessManager * initMasterProcessManager(void);
 ProcessManager * nullProcessManager(void);
@@ -145,6 +144,17 @@ MemoryCase * removeMasterProcessManager(ProcessManager *toRemove, MasterProcessM
 /*---------------------------MAIN-----------------------------*/
 
 int main(void){
+
+	MasterMemory *masterMemory;
+	masterMemory = initMasterMemory();
+
+	addProcess(10, masterMemory);
+	addProcess(50, masterMemory);
+	addProcess(10, masterMemory);
+	addProcess(70, masterMemory);
+	printMemory(masterMemory->memory->begin);
+	printf("\n------------------------------------------------------\n");
+	printProcessList(masterMemory->masterProcessManager->firstProcessManager);
 
 	return 0;
 }
@@ -188,13 +198,13 @@ void printMemory(MemoryCase *firstCase){
 	}
 }
 
-void printProcessList(MemoryCase *firstProcessCase){
-	if(firstProcessCase){	
+void printProcessList(ProcessManager *firstProcessManager){
+	if(firstProcessManager){	
 		printf("\n----> PROCESS\n");
-		printf("ID: %lu\n", ((Process *)(firstProcessCase->holeOrProcess))->ID);
-		printf("Size: %lu\n", ((Process *)(firstProcessCase->holeOrProcess))->inUse);
-		printf("Begin: %lu\n", ((Process *)(firstProcessCase->holeOrProcess))->begin);
-		printProcessList(((Process *)(firstProcessCase->holeOrProcess))->nextProcess);
+		printf("ID: %lu\n", firstProcessManager->ID);
+		printf("Size: %lu\n", firstProcessManager->size);
+		printf("Begin: %lu\n", ((Process *)(firstProcessManager->head->holeOrProcess))->begin);
+		printProcessList(firstProcessManager->nextProcessManager);
 	}
 }
 
@@ -278,14 +288,14 @@ numberOfSpaces getProcessManagerSize(ProcessManager *processManager){
 ProcessManager * createProcessManager(MemoryCase *head, MemoryCase *finish,
 					  ProcessManager *nextProcessManager,
 					  ProcessManager *prevProcessManager){
-	
 	ProcessManager * newProcessManager;
-	newProcessManager = (ProcessManager *) malloc (sizeof(ProcessManager));
+	newProcessManager = (ProcessManager *) malloc (sizeof(ProcessManager));	
 	newProcessManager->head = head;
 	newProcessManager->finish = finish;
 	newProcessManager->nextProcessManager = nextProcessManager;
 	newProcessManager->prevProcessManager = prevProcessManager;
 	newProcessManager->ID = ((Process *)(head->holeOrProcess))->ID;
+	newProcessManager->size = getProcessManagerSize(newProcessManager);
 
 	return newProcessManager;
 }
@@ -327,11 +337,11 @@ Memory * initMemory(void){
 
 MemoryCase * addProcess(numberOfSpaces size, MasterMemory* masterMemory){	
 	numberOfSpaces remaning = size;
-	MemoryCase *runner = masterMemory->memory->begin;
+	MemoryCase *runner = masterMemory->memory->firstHole;
 	MemoryCase *processListBegin = runner;
+	MemoryCase *processListEnd;
 	Hole *runnerHole;	
-	MemoryCase *holeCaseThatFits;
-	MemoryCase *allocResponse;	
+	MemoryCase *holeCaseThatFits;	
 
 	holeCaseThatFits = findHoleThatFits(size, masterMemory->memory);
 	
@@ -344,7 +354,7 @@ MemoryCase * addProcess(numberOfSpaces size, MasterMemory* masterMemory){
 			remaning-=runnerHole->available;
 			if(runner == masterMemory->memory->firstHole)
 				masterMemory->memory->firstHole = runnerHole->nextHole;
-			overwriteHole(holeCaseThatFits, masterMemory->memory);		
+			overwriteHole(runner, masterMemory->memory);		
 		}
 		else if(runnerHole->available == remaning){
 			if(runner == masterMemory->memory->firstHole)
@@ -352,18 +362,21 @@ MemoryCase * addProcess(numberOfSpaces size, MasterMemory* masterMemory){
 			if(runner == masterMemory->memory->lastHole)
 				masterMemory->memory->lastHole = runnerHole->prevHole;
 
-			overwriteHole(holeCaseThatFits, masterMemory->memory);
+			overwriteHole(runner, masterMemory->memory);
 			break;
 		}
 		else{	
-			allocResponse = allocProcessCase(size, holeCaseThatFits, masterMemory->memory);
+			processListEnd = allocProcessCase(size, runner, masterMemory->memory);
+			if (holeCaseThatFits == masterMemory->memory->firstHole)
+				processListBegin = processListEnd;
 			if(runner == masterMemory->memory->begin)
-				masterMemory->memory->begin = allocResponse;
-			/*return allocResponse;*/
+				masterMemory->memory->begin = processListBegin;
 			break;
 		}
 		runner = runnerHole->nextHole;
 	}
+
+	syncMasterProcessManager(processListBegin, processListEnd, masterMemory->masterProcessManager);
 	
 	return processListBegin;
 }
@@ -392,17 +405,14 @@ MemoryCase *allocProcessCase(numberOfSpaces size, MemoryCase *holeCaseThatFits, 
 	Hole *theHole;
 
 	theHole =  (Hole *) holeCaseThatFits->holeOrProcess;
-	
 	processCase = createAProcessCase(theHole->begin, size, memory->lastProcess, nullMemoryCase());
 	
 	if(memory->lastProcess)
 		((Process *)(memory->lastProcess->holeOrProcess))->nextProcess = processCase;	
 	memory->lastProcess = processCase;
-
 	if(!memory->firstProcess)
 		memory->firstProcess = processCase;
 	
-
 	(theHole->available) -= size;
 	(theHole->begin) += size;
 
@@ -411,7 +421,6 @@ MemoryCase *allocProcessCase(numberOfSpaces size, MemoryCase *holeCaseThatFits, 
 	if(processCase->prev)
 		processCase->prev->next = processCase;	
 	holeCaseThatFits->prev = processCase;
-	
 	
 	return processCase; 
 }
