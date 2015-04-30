@@ -162,13 +162,29 @@ int main(void){
 	printMemory(masterMemory->memory->begin);
 	printf("\n------------------------------------------------------\n");
 
-	endProcessByID(1, masterMemory);
-	printMemory(masterMemory->memory->begin);
-	printf("\n------------------------------------------------------\n");
-
 	addProcess(70, masterMemory);
 	printMemory(masterMemory->memory->begin);
 	printf("\n------------------------------------------------------\n");
+	
+	addProcess(30, masterMemory);
+	printMemory(masterMemory->memory->begin);
+	printf("\n------------------------------------------------------\n");
+
+	endProcessByID(0, masterMemory);
+	printMemory(masterMemory->memory->begin);
+	printf("\n------------------------------------------------------\n");
+
+	endProcessByID(3, masterMemory);
+	printMemory(masterMemory->memory->begin);
+	printf("\n------------------------------------------------------\n");
+
+	addProcess(40, masterMemory);
+	printMemory(masterMemory->memory->begin);
+	printf("\n------------------------------------------------------\n");
+
+	
+
+
 	printProcessList(masterMemory->masterProcessManager->firstProcessManager);
 
 	return 0;
@@ -237,6 +253,9 @@ void printProcessList(ProcessManager *firstProcessManager){
 
 /*------------------------MASTER PROCESS MANAGER FUNCTIONS-----------------------*/
 
+
+/* Inicializa, alocando dinamicamente a estrutura que reúne todos os cabeçalhos de processo */
+
 MasterProcessManager * initMasterProcessManager(void){
 	MasterProcessManager * newMasterProcessManager;
 	newMasterProcessManager = (MasterProcessManager *) malloc (sizeof(MasterProcessManager));
@@ -247,6 +266,9 @@ MasterProcessManager * initMasterProcessManager(void){
 
 	return newMasterProcessManager;
 }
+
+/* Aloca um novo cabeçalho de processo dentro da estrutura que reúne esses cabeçalhos, inserindo
+   esse novo processo no final da lista duplamente encadeada */
 
 ProcessManager * allocProcessManager(ProcessManager *toAlloc, MasterProcessManager * masterProcessManager){
 	if (masterProcessManager->processCounter == 0){
@@ -266,6 +288,11 @@ ProcessManager * allocProcessManager(ProcessManager *toAlloc, MasterProcessManag
 
 	return toAlloc;
 }
+
+
+/* Realiza o procedimento contrário à função anterior, remove um elemento qualquer da lista, 
+   essa remoção se dá em qualquer parte da lista, para isso é necessário passar o endereço 
+   do elemento que deve ser removido */
 
 MemoryCase * removeProcessManager(ProcessManager *toRemove, MasterProcessManager *masterProcessManager){
 	MemoryCase *firstMemoryCaseAtList;	
@@ -288,34 +315,59 @@ MemoryCase * removeProcessManager(ProcessManager *toRemove, MasterProcessManager
 	return firstMemoryCaseAtList;
 }
 
+
+/* Função que realiza uma busca recursiva por uma lista de cabeçalhos de processo, recebe o
+   identificador desse processo e retorna o endereço de memória ocorrência desse identificador
+   entre os elementos */
+
 ProcessManager *searchProcessManagerByID(processID ID, ProcessManager *firstProcessManager){
 	if (firstProcessManager == NULL) return nullProcessManager();
 	else if (firstProcessManager->ID == ID) return firstProcessManager;
 	else return searchProcessManagerByID(ID, firstProcessManager->nextProcessManager);
 }
 
+
+/* Função utilizada para sincronizar o cabeçalho pai dos processos com a memória. Cada vez que um novo
+   processo é criado, essa função é chamada para alocar os devidos apontadores que marcam o início
+   e o fim desse processo, já que o mesmo pode se encontrar de forma desordenada dentro da memória */
+
 ProcessManager * syncMasterProcessManager(MemoryCase *head, MemoryCase *finish, MasterProcessManager *masterProcessManager){
 	ProcessManager *newProcessManager;
 	newProcessManager = mountProcessManager(head, finish);
 	return allocProcessManager(newProcessManager, masterProcessManager);
 }
+
 /*------------------------EACH PROCESS MANAGER FUNCTIONS-------------------------*/
+
+
+/* Retorna um cabeçalho de processo Nulo */
 
 ProcessManager * nullProcessManager(void){
 	return NULL;
 }
+
+
+/* Função que percorre os nós de um determinado processo recuperando o tamanho total de todos os
+   segmentos reunidos. */
 
 numberOfSpaces getProcessManagerSize(ProcessManager *processManager){
 	MemoryCase *runner = processManager->head;
 	numberOfSpaces size = 0;
 
 	while(1){
-		size += ((Process *)(runner->holeOrProcess))->inUse;
+		if (((Process *)(runner->holeOrProcess))->ID == 
+		    ((Process *)(processManager->head->holeOrProcess))->ID){
+			size += ((Process *)(runner->holeOrProcess))->inUse;
+		}
 		if(runner == processManager->finish) break;
 		runner = ((Process *)(runner->holeOrProcess))->nextProcess;
 	}
 	return size;
 }
+
+
+/* Função que cria o cabeçalho de um processo a partir do primeiro elemento, do último e estabelece
+   os nós de outros cabeçalhos de processo imediatamente ao seu lado */
 
 ProcessManager * createProcessManager(MemoryCase *head, MemoryCase *finish,
 					  ProcessManager *nextProcessManager,
@@ -332,6 +384,10 @@ ProcessManager * createProcessManager(MemoryCase *head, MemoryCase *finish,
 	return newProcessManager;
 }
 
+
+/* Constrói um cabeçalho de processo vazio que não possui alocação, ou seja,
+   um cabeçalho solto no espaço. */
+
 ProcessManager * mountProcessManager(MemoryCase *head, MemoryCase *finish){
 	ProcessManager *mountedProcessManager;
 	mountedProcessManager = createProcessManager(head, finish, nullProcessManager(), nullProcessManager());
@@ -339,6 +395,9 @@ ProcessManager * mountProcessManager(MemoryCase *head, MemoryCase *finish){
 }
 
 /*------------------------MASTER MEMORY FUNCTIONS------------------------*/
+
+/* Função de inicialização da estrutura principal do programa. São inicializadas
+   automaticamente a lista de cabeçalhos de processo e a memória */
 
 MasterMemory * initMasterMemory(void){
 	MasterMemory *newMasterMemory;
@@ -349,6 +408,8 @@ MasterMemory * initMasterMemory(void){
 
 	return newMasterMemory;
 }
+
+/* Função que encerra um processo com um determinado identificador */
 
 MemoryCase *endProcessByID(processID ID, MasterMemory *masterMemory){
 	ProcessManager *toRemove;
@@ -366,7 +427,8 @@ MemoryCase *endProcessByID(processID ID, MasterMemory *masterMemory){
 	while(!setEnd){
 		if(processCase == toRemove->finish)
 			setEnd = 1;
-		endProcess(processCase, masterMemory);
+		if (((Process *)(processCase->holeOrProcess))->ID == ID)
+			endProcess(processCase, masterMemory);
 		if(!setEnd)
 			processCase = ((Process*)(processCase->holeOrProcess))->nextProcess;
 	}
@@ -375,6 +437,10 @@ MemoryCase *endProcessByID(processID ID, MasterMemory *masterMemory){
 }
 
 /*---------------------MEMORY FUNCTIONS-----------------------*/
+
+
+/*Função de inicialização da memória. Cria um único espaço vazio de tamanho determinado pelo usuário
+  durante a inicialização do programa. */
 
 Memory * initMemory(void){
 	Memory *newMemory;
@@ -390,6 +456,8 @@ Memory * initMemory(void){
 
 	return newMemory;
 }
+
+/* Função que adiciona um processo na memória. Deve-se fonecer o tamanho desse processo */
 
 MemoryCase * addProcess(numberOfSpaces size, MasterMemory* masterMemory){
 	processID id;	
@@ -441,6 +509,10 @@ MemoryCase * addProcess(numberOfSpaces size, MasterMemory* masterMemory){
 	return processListBegin;
 }
 
+
+/* Função que devolve a última posição necessária para encaixar completamente um processo de tamanho
+   'size' dentro da memória. */
+
 MemoryCase *findHoleThatFits(numberOfSpaces size, Memory *memory){	
 	numberOfSpaces remaning;
 	Hole * currentHole;
@@ -459,6 +531,10 @@ MemoryCase *findHoleThatFits(numberOfSpaces size, Memory *memory){
 	return currentHoleCase;
 }
 
+
+/* Função que aloca um processo em um buraco maior que ele, ou seja, cria um nó processo, diminui o
+   espaço de memória disponível no buraco e então aloca o novo processo entre esse espaço e o elemento
+   anterior a ele. */
 MemoryCase *allocProcessCase(processID id, numberOfSpaces size, MemoryCase *holeCaseThatFits, Memory *memory){
 	MemoryCase *processCase;
 	Hole *theHole;
@@ -484,6 +560,10 @@ MemoryCase *allocProcessCase(processID id, numberOfSpaces size, MemoryCase *hole
 	return processCase; 
 }
 
+
+/* Função que aloca um processo de tamanho exatamente igual ao do buraco. Nesse caso, nenhuma estrutura extra
+   precisa ser criada, apenas precisamos sobrescrever o buraco com um processo. */
+
 MemoryCase * overwriteHole(processID id, MemoryCase *holeCaseThatFits, Memory *memory){
 	Hole *theHole;
 	theHole =  (Hole *) holeCaseThatFits->holeOrProcess;
@@ -508,6 +588,9 @@ MemoryCase * overwriteHole(processID id, MemoryCase *holeCaseThatFits, Memory *m
 }
 
 
+/* Função que faz uma busca na lista de memória e retorna o buraco mais próximo de um objeto quando a
+   lista é percorrida para a direita. Isso é importante no momento em que se exclui um processo da memória,
+   já que precisamos saber se há a necessidade de mesclar o buraco criado com um imediatamente ao seu lado. */
 
 MemoryCase * findNextHoleCase(MemoryCase *processCase){
 	if (processCase == nullMemoryCase()) return nullMemoryCase();	
@@ -516,11 +599,19 @@ MemoryCase * findNextHoleCase(MemoryCase *processCase){
 	
 }
 
+/* Função que faz uma busca na lista de memória e retorna o buraco mais próximo de um objeto quando a
+   lista é percorrida para a esquera */
+
 MemoryCase * findPrevHoleCase(MemoryCase *processCase){
 	if (processCase == nullMemoryCase()) return nullMemoryCase();	
 	else if(processCase->type == hole) return processCase;
 	else return findPrevHoleCase(processCase->prev);
 }
+
+
+/* Função que seleciona o modo de exclusão de um processo, a partir da verificação dos buracos mais próximos
+   a este. Temos quatro possibilidades, mesclar a direita, mesclar a esquerda, mesclar tanto para direita quanto
+   para esquerda e, por último, não mesclar */
 
 destructType selectDestructType(MemoryCase *processCase, 
 				MemoryCase *prevHoleCase, 
@@ -544,6 +635,10 @@ destructType selectDestructType(MemoryCase *processCase,
 		return DESTRUCT_MERGE_PREV;
 	else return DESTRUCT_WITHOUT_MERGE;
 }
+
+
+/* Função que exclui um processo da memória a partir do endereço de um nó e realiza o processo de
+   mesclagem dos buracos subsequentes */
 
 MemoryCase * endProcess(MemoryCase *processCase, MasterMemory *masterMemory){
 	Memory *memory = masterMemory->memory;
@@ -576,6 +671,9 @@ MemoryCase * endProcess(MemoryCase *processCase, MasterMemory *masterMemory){
 	}
 }
 
+
+/* Função que destrói um processo sem realizar verificação dos buracos ao seu redor */
+
 MemoryCase * destructWithoutMerge(MemoryCase *processCase, MemoryCase *prevHoleCase, 
 				  MemoryCase *nextHoleCase, Memory *memory){
 	Hole *aHole;
@@ -599,6 +697,8 @@ MemoryCase * destructWithoutMerge(MemoryCase *processCase, MemoryCase *prevHoleC
 	return holeCase;
 }
 
+/* Remove um segmento de processo da lista de processos e redefine os apontadores dos nós
+   imediatamente ao seu lado */
 MemoryCase * removeProcessOfProcessList(MemoryCase *processCase, Memory *memory){
 
 	if(((Process *)(processCase->holeOrProcess))->prevProcess)
@@ -613,6 +713,8 @@ MemoryCase * removeProcessOfProcessList(MemoryCase *processCase, Memory *memory)
 
 	return processCase;
 }
+
+/* Função que realiza a união de dois buracos vizinhos */
 
 MemoryCase * mergeHoleCases(MemoryCase *holeCaseA, MemoryCase *holeCaseB, Memory *memory){
 	
@@ -652,6 +754,9 @@ MemoryCase * mergeHoleCases(MemoryCase *holeCaseA, MemoryCase *holeCaseB, Memory
 
 /*-------------------MEMORY CASE FUNCTIONS--------------------*/
 
+/* Função que cria um elemento de memória do tipo buraco, 
+   é utilizada apenas na inicialização do programa */
+
 MemoryCase * makeInitialMemoryCase(void){
 	MemoryCase *newMemoCase;
 	newMemoCase = newMemoryCase();
@@ -662,6 +767,10 @@ MemoryCase * makeInitialMemoryCase(void){
 
 	return newMemoCase;
 }
+
+
+/* Função que cria um elemento de memória do tipo processo já com um identificador,
+   espaço que ocupa e onde começa na memória. */
 
 MemoryCase * createAProcessCase(processID id, space begin, numberOfSpaces toUse, MemoryCase *prevProcessCase,
 								   MemoryCase *nextProcessCase){
@@ -677,15 +786,24 @@ MemoryCase * createAProcessCase(processID id, space begin, numberOfSpaces toUse,
 	return newProcessCase;
 }
 
+/* Função que devolve um elemento de memória nulo */
+
 MemoryCase *nullMemoryCase(void){
 	return NULL;
 }
+
+/* Aloca um elemento de memória dinamicamente */ 
 
 MemoryCase *newMemoryCase(void){
 	return (MemoryCase *) malloc (sizeof(MemoryCase));
 }
 
 /*---------------------PROCESS FUNCTIONS----------------------*/
+
+/* Função que inicia a estrutura mais simples de um processo, essa estrutura é uma
+   das variáveis que um elemento de memória pode conter (process, hole). por meio
+   de um ponteiro do tipo void declarado na criação de um elemento de memória,
+   podemos alterar facilmente um elemento processo para um elemento buraco. */
 
 Process *initProcess(processID id, space begin, numberOfSpaces inUse, MemoryCase *prevProcessCase,
 							MemoryCase *nextProcessCase){
@@ -700,15 +818,24 @@ Process *initProcess(processID id, space begin, numberOfSpaces inUse, MemoryCase
 	return aProcess;
 }
 
+/* Aloca dinamicamente uma struct Process. */
+
 Process *newProcess(void){
 	return (Process *) malloc (sizeof(Process));
 }
+
+/* Gera um identificador único para novos processos */
 
 processID newProcessID(void){
 	static processID numberOfProcess = 0;
 	return numberOfProcess++;
 }
 /*-----------------------HOLE FUNCTIONS-----------------------*/
+
+/* Função que inicia a estrutura mais simples de um buraco, essa estrutura é uma
+   das variáveis que um elemento de memória pode conter (process, hole). Por meio
+   de um ponteiro do tipo void declarado na criação de um elemento de memória,
+   podemos alterar facilmente um elemento processo para um elemento buraco. */
 
 Hole *makeHole(space begin, numberOfSpaces available,MemoryCase *prevHole, MemoryCase *nextHole){
 	Hole * aHole;
@@ -721,14 +848,20 @@ Hole *makeHole(space begin, numberOfSpaces available,MemoryCase *prevHole, Memor
 	return aHole;
 }
 
+/* Função que conduz de uma forma encapsulada a criação do primeiro elemento de
+   memória ao se inicializar o programa */
+
 Hole *makeInitialHole(void){
 	return makeHole(0, SIZE_OF_ALL_SPACES, nullMemoryCase(), nullMemoryCase());
 }
+
+/* Retorna um ponteiro nulo Hole */
 
 Hole *nullHole(void){
 	return NULL;
 }
 
+/* Aloca dinamicamente uma struct Hole */
 Hole *newHole(void){
 	return (Hole *) malloc (sizeof(Hole));
 }
