@@ -53,6 +53,8 @@ typedef struct Process Process;
 typedef struct Hole Hole;
 typedef struct Memory Memory;
 
+/*-------------------FUNCTIONS HEADERS---------------------*/
+
 /*-------------------------MAIN----------------------------*/
 
 int main(void){
@@ -60,6 +62,35 @@ int main(void){
 	return 0;
 }
 
-/*----------------------FUNCTIONS--------------------------*/
+/*-------------------MEMORY FUNCTIONS----------------------*/
+
+Memory * createMemory(void){
+	return (Memory *) malloc (sizeof(Memory));
+}
+
+/*----------------MEMORY CASE FUNCTIONS--------------------*/
+
+MemoryCase * createMemoryCase(void){
+	return (MemoryCase *) malloc (sizeof(MemoryCase));
+}
+
+/*-------------------HOLE FUNCTIONS------------------------*/
+
+Hole * createHole(void){
+	return (Hole *) malloc (sizeof(Hole));
+}
+
+/*-----------------PROCESS FUNCTIONS-----------------------*/
+
+Process * createProcess(void){
+	return (Process *) malloc (sizeof(Process));
+}
+
+
+
+
+
+
+
 
 
