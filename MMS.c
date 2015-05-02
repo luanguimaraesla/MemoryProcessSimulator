@@ -57,6 +57,10 @@ typedef struct Process Process;
 typedef struct Hole Hole;
 typedef struct Memory Memory;
 
+/*--------------------GLOBAL VARIABLES---------------------*/
+
+time programTime = 0;
+
 /*-------------------FUNCTIONS HEADERS---------------------*/
 
 /*                  1. Alloc functions                     */
@@ -86,11 +90,27 @@ MemoryCase * createInitialHoleCase(numberOfSpaces size);
 
 MemoryCase * nullMemoryCase(void);
 
+/*                   4. Auxiliar functions                 */
+
+processID getNewProcessID(void);
+
+/*                 5. Add process functions                */
+
+MemoryCase *reallocAndInsert_best(numberOfSpaces size, time executionTime, MemoryCase *insertBegin, Memory *memory);
+void removeHoleCase(MemoryCase *toRemove, Memory *memory);
+MemoryCase *overwriteHoleCase(time executionTime, MemoryCase *holeToOverwrite, Memory *memory);
+MemoryCase *findNextTimeListProcessCase(time finalTime, MemoryCase *firstProcessCase);
+
 
 /*-------------------------MAIN----------------------------*/
 
 int main(void){
+
+	Memory *memory;
+	memory = createMemory(300);
 	
+	printf("Criada uma memoria de tamanho: %lu\n", memory->available);	
+
 	return 0;
 }
 
@@ -113,6 +133,136 @@ Memory * createMemory(numberOfSpaces size){
 	newMemory->firstHoleCase = newMemory->begin;
 	
 	return newMemory;
+}
+
+MemoryCase *reallocAndInsert_best(numberOfSpaces size, time executionTime, MemoryCase *insertBegin, Memory *memory){
+	MemoryCase *currentPrevHoleCase = ((Hole*)(insertBegin->holeOrProcess))->prevHoleCase;
+	MemoryCase *currentNextHoleCase = ((Hole*)(insertBegin->holeOrProcess))->nextHoleCase;
+	MemoryCase *runner;
+	numberOfSpaces currentSizeAux = 0;
+	numberOfSpaces currentPrevSize = 0;
+	numberOfSpaces currentNextSize = 0;
+	
+	
+	while(insertBegin->size + currentPrevSize + currentNextSize < size){
+		if(currentPrevHoleCase->size > currentNextHoleCase->size){
+			currentPrevSize += currentPrevHoleCase->size;
+			currentPrevHoleCase = ((Hole *)(currentPrevHoleCase->holeOrProcess))->prevHoleCase;
+		}
+		else{
+			currentNextSize += currentNextHoleCase->size;
+			currentNextHoleCase = ((Hole *)(currentNextHoleCase->holeOrProcess))->nextHoleCase;
+		}
+	}
+
+	runner = insertBegin->next;
+	while(runner != currentNextHoleCase){
+		if(runner->type == process)
+			runner->begin += currentNextSize - currentSizeAux;		
+		else{
+			if(currentNextSize > currentSizeAux + runner->size){
+				currentSizeAux += runner->size;
+				runner = runner->next;
+				removeHoleCase(runner->prev, memory);
+				continue;
+			}
+			else{
+				runner->size -= currentNextSize - currentSizeAux;
+				runner->begin += currentNextSize - currentSizeAux;
+				if(runner->size == 0)
+						removeHoleCase(runner, memory);
+				break;
+			}
+		}
+		runner = runner->next;
+	}
+
+	currentSizeAux = 0;
+	runner = insertBegin->prev;
+	while(runner != currentPrevHoleCase){
+		if(runner->type == process)
+			runner->begin -= (currentPrevSize - currentSizeAux);		
+		else{
+			if(currentPrevSize > currentSizeAux + runner->size){
+				currentSizeAux += runner->size;
+				runner = runner->prev;
+				removeHoleCase(runner->next, memory);
+				continue;
+			}
+			else{
+				runner->size -= (currentPrevSize - currentSizeAux);
+				if(runner->size == 0)
+						removeHoleCase(runner, memory);
+				break;
+			}
+		}
+		runner = runner->prev;
+	}
+	
+	insertBegin->size = size;
+	insertBegin->begin = insertBegin->prev->size + insertBegin->prev->begin >= memory->inUse + memory->available ?
+						insertBegin->prev->size + insertBegin->prev->begin - memory->inUse + memory->available :
+						insertBegin->prev->size + insertBegin->prev->begin;
+
+	return overwriteHoleCase(executionTime, insertBegin, memory);
+}
+
+void removeHoleCase(MemoryCase *toRemove, Memory *memory){
+	if(((Hole *)(toRemove->holeOrProcess))->nextHoleCase == toRemove)
+		memory->firstHoleCase = nullMemoryCase();
+	else if(memory->firstHoleCase == toRemove)
+		memory->firstHoleCase = ((Hole *)(toRemove->holeOrProcess))->nextHoleCase;
+	if(memory->begin == toRemove)
+		memory->begin = memory->begin->next;
+	toRemove->prev->next = toRemove->next;
+	toRemove->next->prev = toRemove->prev;
+	((Hole*)(((Hole*)(toRemove->holeOrProcess))->prevHoleCase->holeOrProcess))->nextHoleCase =
+	((Hole*)(toRemove->holeOrProcess))->nextHoleCase;
+	((Hole*)(((Hole*)(toRemove->holeOrProcess))->nextHoleCase->holeOrProcess))->prevHoleCase =
+	((Hole*)(toRemove->holeOrProcess))->prevHoleCase;
+	
+	free(toRemove);
+}		
+
+MemoryCase *overwriteHoleCase(time executionTime, MemoryCase *holeToOverwrite, Memory *memory){
+	MemoryCase *nextProcessCase;
+	MemoryCase *prevProcessCase;
+
+	if(((Hole *)(holeToOverwrite->holeOrProcess))->nextHoleCase == holeToOverwrite)
+		memory->firstHoleCase = nullMemoryCase();
+	else if(memory->firstHoleCase == holeToOverwrite)
+		memory->firstHoleCase = ((Hole *)(holeToOverwrite->holeOrProcess))->nextHoleCase;
+
+	nextProcessCase = findNextTimeListProcessCase(executionTime + programTime, memory->firstProcessCase);
+	prevProcessCase = nextProcessCase ? ((Process *)(nextProcessCase->holeOrProcess))->prevProcessCase : nullMemoryCase();	
+	holeToOverwrite->holeOrProcess = createProcess(getNewProcessID(), executionTime + programTime, nextProcessCase, prevProcessCase);
+	if(memory->firstProcessCase == nullMemoryCase())
+		memory->firstProcessCase = holeToOverwrite;
+
+	return holeToOverwrite;
+}
+
+MemoryCase *findNextTimeListProcessCase(time finalTime, MemoryCase *firstProcessCase){
+	if(!firstProcessCase) return nullMemoryCase();
+	else if (((Process *)(firstProcessCase->holeOrProcess))->finalTime >= finalTime) return firstProcessCase;
+	else return findNextTimeListProcessCase(finalTime, ((Process *)(firstProcessCase->holeOrProcess))->nextProcessCase);
+}
+
+
+
+MemoryCase *addProcessFirstFit(numberOfSpaces size, time executionTime, Memory *memory){
+	MemoryCase *firstHoleCase = memory->firstHoleCase;
+
+	if(memory->available < size || !firstHoleCase)
+		return nullMemoryCase();
+
+	if(size > firstHoleCase->size){
+		return reallocAndInsert_best(size, executionTime, firstHoleCase, memory);
+	}
+	else{
+		/*CONTINUAR DAQUI CRIANDO FUNÇÃO PARA ALOCAR NOVA CAIXA PROCESSO QUANDO A MEMÒRIA TEM TAMANHO SUFICIENTE*/
+		return NULL;
+	}
 }
 
 /*----------------MEMORY CASE FUNCTIONS--------------------*/
@@ -203,6 +353,12 @@ Process * createProcess(processID id, time finalTime,
 	return newProcess;
 }
 
+/*----------------------AUXILIAR---------------------------*/
+
+processID getNewProcessID(void){
+	static processID id = -1;
+	return ++id;
+}
 
 
 
