@@ -105,7 +105,7 @@ MemoryCase *divideAndInsert(numberOfSpaces size, time executionTime, MemoryCase 
 
 /*                 6. Print functions                    */
 void printMemory(MemoryCase *firstCase);
-
+void printProcessList(MemoryCase *firstProcessCase);
 
 /*-------------------------MAIN----------------------------*/
 
@@ -117,7 +117,11 @@ int main(void){
 	printf("Criada uma memoria de tamanho: %lu\n", memory->available);
 	addProcessFirstFit(200, 10, memory);
 	addProcessFirstFit(20, 10, memory);
-	printMemory(memory->begin);	
+	addProcessFirstFit(40, 5, memory);
+	printf("---------------------MEMORY LIST---->");
+	printMemory(memory->begin);
+	printf("--------------------PROCESS LIST---->");
+	printProcessList(memory->firstProcessCase);
 
 	return 0;
 }
@@ -140,6 +144,16 @@ void printMemory(MemoryCase *firstCase){
 		}
 		firstCase = firstCase->next;
 	}while(firstCase != firstPrintedCase);
+}
+
+void printProcessList(MemoryCase *firstProcessCase){
+	if(firstProcessCase){	
+		printf("\n----> PROCESS\n");
+		printf("ID: %lu\n", ((Process *)(firstProcessCase->holeOrProcess))->id);
+		printf("Size: %lu\n", firstProcessCase->size);
+		printf("Begin: %lu\n", firstProcessCase->begin);
+		printProcessList(((Process *)(firstProcessCase->holeOrProcess))->nextProcessCase);
+	}
 }
 
 
