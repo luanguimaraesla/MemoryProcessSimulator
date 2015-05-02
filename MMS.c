@@ -3,6 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define DESTRUCT_WITHOUT_MERGE  0
+#define DESTRUCT_MERGE_NEXT     1
+#define DESTRUCT_MERGE_PREV     2
+#define DESTRUCT_MERGE_BOTH     3
+
 /*------------------------TYPEDEFS-------------------------*/
 
 typedef unsigned long time;
@@ -104,25 +109,78 @@ MemoryCase *overwriteHoleCase(time executionTime, MemoryCase *holeToOverwrite, M
 MemoryCase *findNextTimeListProcessCase(time finalTime, MemoryCase *firstProcessCase);
 MemoryCase *divideAndInsert(numberOfSpaces size, time executionTime, MemoryCase * holeCaseToDivide, Memory *memory);
 
-/*                 6. Print functions                    */
+/*                 6. Print functions                      */
 void printMemory(MemoryCase *firstCase);
 void printProcessList(MemoryCase *firstProcessCase);
+void printHoleList(MemoryCase *firstHoleCase);
+
+/*                 7. End process functions                */
+
+MemoryCase * endProcess(MemoryCase *processCase, Memory *memory);
+destructType selectDestructType(MemoryCase *processCase, MemoryCase *prevHoleCase, MemoryCase *nextHoleCase);
+MemoryCase * findPrevHoleCase(MemoryCase *processCase, Memory *memory);
+MemoryCase * findNextHoleCase(MemoryCase *processCase, Memory* memory);
+MemoryCase * destructWithoutMerge(MemoryCase *processCase, MemoryCase *prevHoleCase, MemoryCase *nextHoleCase, Memory *memory);
+MemoryCase * removeProcessOfProcessList(MemoryCase *processCase, Memory *memory);
+MemoryCase * mergeHoleCases(MemoryCase *holeCaseA, MemoryCase *holeCaseB, Memory *memory);
 
 /*-------------------------MAIN----------------------------*/
 
 int main(void){
 
 	Memory *memory;
+	MemoryCase *aux[3];
 	memory = createMemory(300);
 	
 	printf("Criada uma memoria de tamanho: %lu\n", memory->available);
-	addProcessFirstFit(200, 10, memory);
-	addProcessFirstFit(20, 10, memory);
-	addProcessFirstFit(40, 5, memory);
+	aux[0] = addProcessFirstFit(200, 10, memory);
 	printf("---------------------MEMORY LIST---->");
 	printMemory(memory->begin);
-	printf("--------------------PROCESS LIST---->");
+
+	aux[1] = addProcessFirstFit(20, 10, memory);
+	printf("---------------------MEMORY LIST---->");
+	printMemory(memory->begin);
+
+	aux[2] = addProcessFirstFit(40, 5, memory);
+	printf("---------------------MEMORY LIST---->");
+	printMemory(memory->begin);
+
+	endProcess(aux[1], memory);
+	printf("---------------------MEMORY LIST---->");
+	printMemory(memory->begin);
+
+	printf("--------------------HOLE LIST------->");
+	printHoleList(memory->firstHoleCase);
+
+	aux[1] = addProcessFirstFit(30, 4, memory);
+	printf("---------------------MEMORY LIST---->");
+	printMemory(memory->begin);
+
+	endProcess(aux[1], memory);
+	printf("---------------------MEMORY LIST---->");
+	printMemory(memory->begin);
+
+	aux[1] = addProcessFirstFit(30, 4, memory);
+	printf("---------------------MEMORY LIST---->");
+	printMemory(memory->begin);
+
+	endProcess(aux[0], memory);
+	printf("---------------------MEMORY LIST---->");
+	printMemory(memory->begin);
+
+	endProcess(aux[1], memory);
+	printf("---------------------MEMORY LIST---->");
+	printMemory(memory->begin);
+
+	endProcess(aux[2], memory);
+	printf("---------------------MEMORY LIST---->");
+	printMemory(memory->begin);
+
+	
+	printf("\n\n\n\n\n--------------------PROCESS LIST---->");
 	printProcessList(memory->firstProcessCase);
+	printf("--------------------HOLE LIST------->");
+	printHoleList(memory->firstHoleCase);
 
 	return 0;
 }
@@ -157,6 +215,18 @@ void printProcessList(MemoryCase *firstProcessCase){
 	}
 }
 
+void printHoleList(MemoryCase *firstHoleCase){
+	MemoryCase *firstHolePrinted = firstHoleCase;
+	if (firstHoleCase){
+		do{
+			printf("\n----> HOLE\n");
+			printf("Size: %lu\n", firstHoleCase->size);
+			printf("Begin: %lu\n", firstHoleCase->begin);
+			firstHoleCase = ((Hole *)(firstHoleCase->holeOrProcess))->nextHoleCase;
+		}while(firstHoleCase != firstHolePrinted);
+	}
+}
+
 
 /*-------------------MEMORY FUNCTIONS----------------------*/
 
@@ -187,22 +257,28 @@ MemoryCase *reallocAndInsert_best(numberOfSpaces size, time executionTime, Memor
 	numberOfSpaces currentPrevSize = 0;
 	numberOfSpaces currentNextSize = 0;
 	
-	
 	while(insertBegin->size + currentPrevSize + currentNextSize < size){
 		if(currentPrevHoleCase->size > currentNextHoleCase->size){
-			currentPrevSize += currentPrevHoleCase->size;
+			if(currentPrevHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize > size)
+				currentPrevSize += (size - currentNextSize - currentPrevSize - insertBegin->size);
+			else
+				currentPrevSize += currentNextHoleCase->size;
 			currentPrevHoleCase = ((Hole *)(currentPrevHoleCase->holeOrProcess))->prevHoleCase;
 		}
 		else{
-			currentNextSize += currentNextHoleCase->size;
+			if(currentNextHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize > size)
+				currentNextSize += (size - currentNextSize - currentPrevSize - insertBegin->size);
+			else
+				currentNextSize += currentNextHoleCase->size;
 			currentNextHoleCase = ((Hole *)(currentNextHoleCase->holeOrProcess))->nextHoleCase;
 		}
 	}
 
 	runner = insertBegin->next;
 	while(runner != currentNextHoleCase && currentNextSize){
-		if(runner->type == process)
-			runner->begin += currentNextSize - currentSizeAux;		
+		if(runner->type == process){
+			runner->begin += currentNextSize - currentSizeAux;
+		}		
 		else{
 			if(currentNextSize > currentSizeAux + runner->size){
 				currentSizeAux += runner->size;
@@ -293,6 +369,8 @@ MemoryCase *overwriteHoleCase(time executionTime, MemoryCase *holeToOverwrite, M
 	if(prevProcessCase)
 		((Process*)(prevProcessCase->holeOrProcess))->nextProcessCase = holeToOverwrite;
 
+	holeToOverwrite->type = process;
+
 	return holeToOverwrite;
 }
 
@@ -316,10 +394,14 @@ MemoryCase *addProcessFirstFit(numberOfSpaces size, time executionTime, Memory *
 
 MemoryCase *divideAndInsert(numberOfSpaces size, time executionTime, MemoryCase * holeCaseToDivide, Memory *memory){
 	MemoryCase *newProcessCase;
-	MemoryCase *nextProcessCase = findNextTimeListProcessCase(executionTime + programTime, memory->firstProcessCase);
-	MemoryCase *prevProcessCase = nextProcessCase ? ((Process *)(nextProcessCase->holeOrProcess))->prevProcessCase : nullMemoryCase();
+	MemoryCase *nextProcessCase;
+	MemoryCase *prevProcessCase;
+
+	nextProcessCase = findNextTimeListProcessCase(executionTime + programTime, memory->firstProcessCase);
+	prevProcessCase = nextProcessCase ? ((Process *)(nextProcessCase->holeOrProcess))->prevProcessCase : nullMemoryCase();
 	newProcessCase = createProcessCase(getNewProcessID(), executionTime + programTime, holeCaseToDivide->begin, size,
 					   nextProcessCase, prevProcessCase, holeCaseToDivide, holeCaseToDivide->prev);
+
 	holeCaseToDivide->size -= size;
 	holeCaseToDivide->begin += size;
 	holeCaseToDivide->prev->next = newProcessCase;
@@ -343,23 +425,133 @@ MemoryCase * findNextHoleCase(MemoryCase *processCase, Memory* memory){
 		if(runner->type == hole)
 			return runner;
 		runner = runner->next;
-	}while(runner != memory->begin);
+	}while(runner != processCase);
 	return nullMemoryCase();
 }
 
-MemoryCase * findPrevHoleCase(MemoryCase *processCase){
-	MemoryCase *runner = processCase->next;
+MemoryCase * findPrevHoleCase(MemoryCase *processCase, Memory *memory){
+	MemoryCase *runner = processCase->prev;
 	do{
 		if(runner->type == hole)
 			return runner;
 		runner = runner->prev;
-	}while(runner != memory->begin->prev);
+	}while(runner != processCase);
 	return nullMemoryCase();
 }
 
+destructType selectDestructType(MemoryCase *processCase, 
+								MemoryCase *prevHoleCase, 
+								MemoryCase *nextHoleCase){	
+	if (!nextHoleCase && !prevHoleCase)
+		return DESTRUCT_WITHOUT_MERGE;
+	else if (nextHoleCase == processCase->next && prevHoleCase == processCase->prev 
+		 && processCase->prev && processCase->next)
+		return DESTRUCT_MERGE_BOTH;
+	else if(nextHoleCase == processCase->next && processCase->next)
+		return DESTRUCT_MERGE_NEXT;
+	else if(prevHoleCase == processCase->prev && processCase->prev)
+		return DESTRUCT_MERGE_PREV;
+	else return DESTRUCT_WITHOUT_MERGE;
+}
 
-MemoryCase *endProcess(){
+MemoryCase * endProcess(MemoryCase *processCase, Memory *memory){
+	MemoryCase *nextHoleCase, *prevHoleCase, *newHoleCase;
+	destructType option;
 	
+	if(processCase->type != process)
+		return nullMemoryCase();
+	
+	nextHoleCase = findNextHoleCase(processCase, memory);
+	prevHoleCase = findPrevHoleCase(processCase, memory);
+	
+	option = selectDestructType(processCase, prevHoleCase, nextHoleCase);	
+
+	newHoleCase = destructWithoutMerge(processCase, prevHoleCase, nextHoleCase, memory);
+
+	switch(option){
+		case DESTRUCT_WITHOUT_MERGE:
+			return newHoleCase;
+		case DESTRUCT_MERGE_NEXT:
+			return mergeHoleCases(newHoleCase, nextHoleCase, memory);
+		case DESTRUCT_MERGE_PREV:
+			return mergeHoleCases(newHoleCase, prevHoleCase, memory);
+		case DESTRUCT_MERGE_BOTH:
+			if(nextHoleCase != prevHoleCase)
+				newHoleCase = mergeHoleCases(newHoleCase, prevHoleCase, memory);
+			return mergeHoleCases(newHoleCase, nextHoleCase, memory);
+		default:
+			exit(1);
+	}
+}
+
+MemoryCase * destructWithoutMerge(MemoryCase *processCase, MemoryCase *prevHoleCase, 
+				  MemoryCase *nextHoleCase, Memory *memory){
+	Hole *aHole;
+	MemoryCase *holeCase;
+
+	holeCase = removeProcessOfProcessList(processCase, memory);	
+	holeCase->type = hole;
+
+	aHole = createHole(nextHoleCase, prevHoleCase);
+	holeCase->holeOrProcess = (void *) aHole;
+
+	if (nextHoleCase)
+		((Hole *)(nextHoleCase->holeOrProcess))->prevHoleCase = holeCase;
+	if (prevHoleCase)
+		((Hole *)(prevHoleCase->holeOrProcess))->nextHoleCase = holeCase;
+
+	if(memory->firstHoleCase == nextHoleCase)	
+		memory->firstHoleCase = holeCase;
+
+	return holeCase;
+}
+
+MemoryCase * removeProcessOfProcessList(MemoryCase *processCase, Memory *memory){
+
+	if(((Process *)(processCase->holeOrProcess))->prevProcessCase)
+		((Process*)(((Process *)(processCase->holeOrProcess))->prevProcessCase->holeOrProcess))->nextProcessCase = 
+		((Process *)(processCase->holeOrProcess))->nextProcessCase;
+	else memory->firstProcessCase = ((Process *)(processCase->holeOrProcess))->nextProcessCase;
+
+	if(((Process *)(processCase->holeOrProcess))->nextProcessCase)
+		((Process*)(((Process *)(processCase->holeOrProcess))->nextProcessCase->holeOrProcess))->prevProcessCase = 
+		((Process *)(processCase->holeOrProcess))->prevProcessCase;
+
+	return processCase;
+}
+
+MemoryCase * mergeHoleCases(MemoryCase *holeCaseA, MemoryCase *holeCaseB, Memory *memory){
+	
+	MemoryCase *holeCaseAux;
+	if(holeCaseB->next == holeCaseA){
+		holeCaseAux = holeCaseA;
+		holeCaseA = holeCaseB;
+		holeCaseB = holeCaseAux;
+	}
+
+	holeCaseB->begin = holeCaseA->begin;
+	holeCaseB->size += holeCaseA->size;
+
+	((Hole *)(holeCaseB->holeOrProcess))->prevHoleCase = 
+	((Hole *)(holeCaseA->holeOrProcess))->prevHoleCase;
+
+	if(((Hole *)(holeCaseA->holeOrProcess))->prevHoleCase)
+		((Hole *)(((Hole *)(holeCaseA->holeOrProcess))->
+		prevHoleCase->holeOrProcess))->nextHoleCase = holeCaseB;	
+
+	holeCaseB->prev = holeCaseA->prev;
+
+	if(holeCaseA->prev)
+		holeCaseA->prev->next = holeCaseB;
+
+	if (memory->begin == holeCaseA)
+		memory->begin = holeCaseB;
+
+	if (memory->firstHoleCase == holeCaseA)
+		memory->firstHoleCase = holeCaseB;	
+
+	free(holeCaseA);
+	return holeCaseB;
 }
 
 /*----------------MEMORY CASE FUNCTIONS--------------------*/
