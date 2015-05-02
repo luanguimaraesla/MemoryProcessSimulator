@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #define DESTRUCT_WITHOUT_MERGE  0
 #define DESTRUCT_MERGE_NEXT     1
@@ -69,14 +70,14 @@ time programTime = 0;
 
 /*-------------------FUNCTIONS HEADERS---------------------*/
 
-/*                  1. Alloc functions                     */
+/*1. Alloc functions*/
 
 Memory * allocMemory(void);
 MemoryCase * allocMemoryCase(void);
 Hole * allocHole(void);
 Process * allocProcess(void);
 
-/*				   2. Create functions                     */
+/*2. Create functions*/
 
 Memory * createMemory(numberOfSpaces size);
 MemoryCase * createMemoryCase(memoryCaseType type, space begin, numberOfSpaces size,
@@ -92,15 +93,15 @@ Process * createProcess(processID id, time finalTime,
 						MemoryCase *prevProcessCase);
 MemoryCase * createInitialHoleCase(numberOfSpaces size);
 
-/*		           3. Null functions                     */
+/*3. Null functions*/
 
 MemoryCase * nullMemoryCase(void);
 
-/*                 4. Auxiliar functions                 */
+/*4. Auxiliar functions*/
 
 processID getNewProcessID(void);
 
-/*                 5. Add process functions                */
+/*5. Add process functions*/
 
 MemoryCase *addProcessFirstFit(numberOfSpaces size, time executionTime, Memory *memory);
 MemoryCase *reallocAndInsert_best(numberOfSpaces size, time executionTime, MemoryCase *insertBegin, Memory *memory);
@@ -108,13 +109,15 @@ void removeHoleCase(MemoryCase *toRemove, Memory *memory);
 MemoryCase *overwriteHoleCase(time executionTime, MemoryCase *holeToOverwrite, Memory *memory);
 MemoryCase *findNextTimeListProcessCase(time finalTime, MemoryCase *firstProcessCase);
 MemoryCase *divideAndInsert(numberOfSpaces size, time executionTime, MemoryCase * holeCaseToDivide, Memory *memory);
+MemoryCase *findTheBestFitHoleCase(numberOfSpaces size, Memory *memory);
 
-/*                 6. Print functions                      */
+/*6. Print functions*/
+
 void printMemory(MemoryCase *firstCase);
 void printProcessList(MemoryCase *firstProcessCase);
 void printHoleList(MemoryCase *firstHoleCase);
 
-/*                 7. End process functions                */
+/*7. End process functions*/
 
 MemoryCase * endProcess(MemoryCase *processCase, Memory *memory);
 destructType selectDestructType(MemoryCase *processCase, MemoryCase *prevHoleCase, MemoryCase *nextHoleCase);
@@ -123,6 +126,7 @@ MemoryCase * findNextHoleCase(MemoryCase *processCase, Memory* memory);
 MemoryCase * destructWithoutMerge(MemoryCase *processCase, MemoryCase *prevHoleCase, MemoryCase *nextHoleCase, Memory *memory);
 MemoryCase * removeProcessOfProcessList(MemoryCase *processCase, Memory *memory);
 MemoryCase * mergeHoleCases(MemoryCase *holeCaseA, MemoryCase *holeCaseB, Memory *memory);
+MemoryCase * addProcessBestFit(numberOfSpaces size, time executionTime, Memory *memory);
 
 /*-------------------------MAIN----------------------------*/
 
@@ -248,6 +252,11 @@ Memory * createMemory(numberOfSpaces size){
 	
 	return newMemory;
 }
+
+/*WORST FIT INSERTION*/
+
+
+/*FIRST FIT INSERTION*/
 
 MemoryCase *reallocAndInsert_best(numberOfSpaces size, time executionTime, MemoryCase *insertBegin, Memory *memory){
 	MemoryCase *currentPrevHoleCase = ((Hole*)(insertBegin->holeOrProcess))->prevHoleCase;
@@ -380,8 +389,6 @@ MemoryCase *findNextTimeListProcessCase(time finalTime, MemoryCase *firstProcess
 	else return findNextTimeListProcessCase(finalTime, ((Process *)(firstProcessCase->holeOrProcess))->nextProcessCase);
 }
 
-
-
 MemoryCase *addProcessFirstFit(numberOfSpaces size, time executionTime, Memory *memory){
 	MemoryCase *firstHoleCase = memory->firstHoleCase;
 	if(memory->available < size || !firstHoleCase)
@@ -390,6 +397,32 @@ MemoryCase *addProcessFirstFit(numberOfSpaces size, time executionTime, Memory *
 		return reallocAndInsert_best(size, executionTime, firstHoleCase, memory);
 	else
 		return divideAndInsert(size, executionTime, firstHoleCase, memory);
+}
+
+/*BEST FIT INSERTION*/
+MemoryCase *findTheBestFitHoleCase(numberOfSpaces size, Memory *memory){
+	MemoryCase * runner = memory->firstHoleCase;
+	MemoryCase * bestFitHoleCase = runner;
+	numberOfSpaces minDiference = runner->size;
+	do{
+		if(abs(runner->size - size) < minDiference){
+			minDiference = abs(runner->size - size);
+			bestFitHoleCase = runner;
+		}
+		runner = ((Hole *)(runner->holeOrProcess))->nextHoleCase;
+	}while(runner != memory->firstHoleCase);
+	return bestFitHoleCase;	
+}
+
+MemoryCase *addProcessBestFit(numberOfSpaces size, time executionTime, Memory *memory){
+	MemoryCase *bestFitHoleCase = findTheBestFitHoleCase(size, memory);
+
+	if(memory->available < size || !bestFitHoleCase)
+		return nullMemoryCase();
+	if(size >= bestFitHoleCase->size)
+		return reallocAndInsert_best(size, executionTime, bestFitHoleCase, memory);
+	else
+		return divideAndInsert(size, executionTime, bestFitHoleCase, memory);
 }
 
 MemoryCase *divideAndInsert(numberOfSpaces size, time executionTime, MemoryCase * holeCaseToDivide, Memory *memory){
@@ -428,6 +461,8 @@ MemoryCase * findNextHoleCase(MemoryCase *processCase, Memory* memory){
 	}while(runner != processCase);
 	return nullMemoryCase();
 }
+
+/*remove process functions*/
 
 MemoryCase * findPrevHoleCase(MemoryCase *processCase, Memory *memory){
 	MemoryCase *runner = processCase->prev;
