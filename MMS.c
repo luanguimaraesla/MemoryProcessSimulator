@@ -10,6 +10,7 @@ typedef unsigned long space;
 typedef unsigned long numberOfSpaces;
 typedef unsigned long processID;
 typedef unsigned long numberOfProcesses;
+typedef int destructType;
 
 /*--------------------------ENUMS--------------------------*/
 
@@ -334,6 +335,31 @@ MemoryCase *divideAndInsert(numberOfSpaces size, time executionTime, MemoryCase 
 		((Process*)(prevProcessCase->holeOrProcess))->nextProcessCase = newProcessCase;
 
 	return newProcessCase;
+}
+
+MemoryCase * findNextHoleCase(MemoryCase *processCase, Memory* memory){
+	MemoryCase *runner = processCase->next;
+	do{
+		if(runner->type == hole)
+			return runner;
+		runner = runner->next;
+	}while(runner != memory->begin);
+	return nullMemoryCase();
+}
+
+MemoryCase * findPrevHoleCase(MemoryCase *processCase){
+	MemoryCase *runner = processCase->next;
+	do{
+		if(runner->type == hole)
+			return runner;
+		runner = runner->prev;
+	}while(runner != memory->begin->prev);
+	return nullMemoryCase();
+}
+
+
+MemoryCase *endProcess(){
+	
 }
 
 /*----------------MEMORY CASE FUNCTIONS--------------------*/
