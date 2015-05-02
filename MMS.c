@@ -110,6 +110,10 @@ MemoryCase *overwriteHoleCase(time executionTime, MemoryCase *holeToOverwrite, M
 MemoryCase *findNextTimeListProcessCase(time finalTime, MemoryCase *firstProcessCase);
 MemoryCase *divideAndInsert(numberOfSpaces size, time executionTime, MemoryCase * holeCaseToDivide, Memory *memory);
 MemoryCase *findTheBestFitHoleCase(numberOfSpaces size, Memory *memory);
+MemoryCase *reallocAndInsert_worst(numberOfSpaces size, time executionTime, MemoryCase *insertBegin, Memory *memory);
+MemoryCase *findTheWorstFitHoleCase(numberOfSpaces size, Memory *memory);
+MemoryCase * addProcessWorstFit(numberOfSpaces size, time executionTime, Memory *memory);
+MemoryCase * addProcessBestFit(numberOfSpaces size, time executionTime, Memory *memory);
 
 /*6. Print functions*/
 
@@ -126,7 +130,7 @@ MemoryCase * findNextHoleCase(MemoryCase *processCase, Memory* memory);
 MemoryCase * destructWithoutMerge(MemoryCase *processCase, MemoryCase *prevHoleCase, MemoryCase *nextHoleCase, Memory *memory);
 MemoryCase * removeProcessOfProcessList(MemoryCase *processCase, Memory *memory);
 MemoryCase * mergeHoleCases(MemoryCase *holeCaseA, MemoryCase *holeCaseB, Memory *memory);
-MemoryCase * addProcessBestFit(numberOfSpaces size, time executionTime, Memory *memory);
+
 
 /*-------------------------MAIN----------------------------*/
 
@@ -255,6 +259,108 @@ Memory * createMemory(numberOfSpaces size){
 
 /*WORST FIT INSERTION*/
 
+MemoryCase *findTheWorstFitHoleCase(numberOfSpaces size, Memory *memory){
+	MemoryCase * runner = memory->firstHoleCase;
+	MemoryCase * worstFitHoleCase = runner;
+	numberOfSpaces maxDiference = 0;
+	do{
+		if(abs(runner->size - size) > maxDiference){
+			maxDiference = abs(runner->size - size);
+			worstFitHoleCase = runner;
+		}
+		runner = ((Hole *)(runner->holeOrProcess))->nextHoleCase;
+	}while(runner != memory->firstHoleCase);
+	return worstFitHoleCase;	
+}
+
+MemoryCase *addProcessWorstFit(numberOfSpaces size, time executionTime, Memory *memory){
+	MemoryCase *worstFitHoleCase = findTheWorstFitHoleCase(size, memory);
+
+	if(memory->available < size || !worstFitHoleCase)
+		return nullMemoryCase();
+	if(size >= worstFitHoleCase->size)
+		return reallocAndInsert_worst(size, executionTime, worstFitHoleCase, memory);
+	else
+		return divideAndInsert(size, executionTime, worstFitHoleCase, memory);
+}
+
+MemoryCase *reallocAndInsert_worst(numberOfSpaces size, time executionTime, MemoryCase *insertBegin, Memory *memory){
+	MemoryCase *currentPrevHoleCase = ((Hole*)(insertBegin->holeOrProcess))->prevHoleCase;
+	MemoryCase *currentNextHoleCase = ((Hole*)(insertBegin->holeOrProcess))->nextHoleCase;
+	MemoryCase *runner;
+	numberOfSpaces currentSizeAux = 0;
+	numberOfSpaces currentPrevSize = 0;
+	numberOfSpaces currentNextSize = 0;
+	
+	while(insertBegin->size + currentPrevSize + currentNextSize < size){
+		if(currentPrevHoleCase->size < currentNextHoleCase->size){
+			if(currentPrevHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize > size)
+				currentPrevSize += (size - currentNextSize - currentPrevSize - insertBegin->size);
+			else
+				currentPrevSize += currentNextHoleCase->size;
+			currentPrevHoleCase = ((Hole *)(currentPrevHoleCase->holeOrProcess))->prevHoleCase;
+		}
+		else{
+			if(currentNextHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize > size)
+				currentNextSize += (size - currentNextSize - currentPrevSize - insertBegin->size);
+			else
+				currentNextSize += currentNextHoleCase->size;
+			currentNextHoleCase = ((Hole *)(currentNextHoleCase->holeOrProcess))->nextHoleCase;
+		}
+	}
+
+	runner = insertBegin->next;
+	while(runner != currentNextHoleCase && currentNextSize){
+		if(runner->type == process){
+			runner->begin += currentNextSize - currentSizeAux;
+		}		
+		else{
+			if(currentNextSize > currentSizeAux + runner->size){
+				currentSizeAux += runner->size;
+				runner = runner->next;
+				removeHoleCase(runner->prev, memory);
+				continue;
+			}
+			else{
+				runner->size -= currentNextSize - currentSizeAux;
+				runner->begin += currentNextSize - currentSizeAux;
+				if(runner->size == 0)
+						removeHoleCase(runner, memory);
+				break;
+			}
+		}
+		runner = runner->next;
+	}
+
+	currentSizeAux = 0;
+	runner = insertBegin->prev;
+	while(runner != currentPrevHoleCase && currentPrevSize){
+		if(runner->type == process)
+			runner->begin -= (currentPrevSize - currentSizeAux);		
+		else{
+			if(currentPrevSize > currentSizeAux + runner->size){
+				currentSizeAux += runner->size;
+				runner = runner->prev;
+				removeHoleCase(runner->next, memory);
+				continue;
+			}
+			else{
+				runner->size -= (currentPrevSize - currentSizeAux);
+				if(runner->size == 0)
+						removeHoleCase(runner, memory);
+				break;
+			}
+		}
+		runner = runner->prev;
+	}
+	
+	insertBegin->size = size;
+	insertBegin->begin = insertBegin->prev->size + insertBegin->prev->begin >= memory->inUse + memory->available ?
+						insertBegin->prev->size + insertBegin->prev->begin - memory->inUse + memory->available :
+						insertBegin->prev->size + insertBegin->prev->begin;
+
+	return overwriteHoleCase(executionTime, insertBegin, memory);
+}
 
 /*FIRST FIT INSERTION*/
 
