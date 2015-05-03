@@ -46,6 +46,7 @@ struct Hole{
 };
 
 struct Process{
+	pthread_t execute;
 	processID id;
 	stepTime finalTime;
 	struct MemoryCase *nextProcessCase;
@@ -62,14 +63,22 @@ struct Memory{
 	struct MemoryCase *firstHoleCase;
 };
 
+struct ExecProcessArg{
+	struct Memory *memory;
+	struct MemoryCase *selfCase;
+};
+
 typedef struct MemoryCase MemoryCase;
 typedef struct Process Process;
 typedef struct Hole Hole;
 typedef struct Memory Memory;
+typedef struct ExecProcessArg execution_arg;
 
 /*--------------------GLOBAL VARIABLES---------------------*/
 
-stepTime programTime = 0;
+pthread_mutex_t mutex_listModify;
+pthread_cond_t cond_listModify;
+stepTime programTime = 1;
 
 /*-------------------FUNCTIONS HEADERS---------------------*/
 
@@ -114,6 +123,7 @@ MemoryCase *reallocAndInsert_worst(numberOfSpaces size, stepTime executionTime, 
 MemoryCase *findTheWorstFitHoleCase(numberOfSpaces size, Memory *memory);
 MemoryCase * addProcessWorstFit(numberOfSpaces size, stepTime executionTime, Memory *memory);
 MemoryCase * addProcessBestFit(numberOfSpaces size, stepTime executionTime, Memory *memory);
+MemoryCase *findPrevTimeListProcessCase(stepTime finalTime, MemoryCase *firstProcessCase);
 
 /*6. Print functions*/
 
@@ -137,6 +147,10 @@ insertionMode getInsertionMode(void);
 void printMemorySizeMenu(void);
 numberOfSpaces getMemorySize(void);
 
+/*9. thread functions*/
+void * incrementStepTime(void *vargp);
+void * executeProcess(void *vargp);
+
 
 /*-------------------------MAIN----------------------------*/
 
@@ -144,7 +158,8 @@ int main(void){
 
 	Memory *memory;
 	MemoryCase *(*addProcess)();
-	MemoryCase *test[3];
+	pthread_t TIMER;
+
 	memory = createMemory(getMemorySize());
 	
 	printf("Done.\n");
@@ -163,14 +178,23 @@ int main(void){
 			exit(1); 
 	}
 
-	test[0] = (*addProcess)(10, 30, memory);
-	test[1] =(*addProcess)(20, 50, memory);
-	test[2] =(*addProcess)(50, 20, memory);
-	endProcess(test[1], memory);
-	test[1] = (*addProcess)(60, 40, memory);
+	pthread_create(&TIMER, NULL, incrementStepTime, NULL);
+	pthread_mutex_init(&mutex_listModify, NULL);
 	
-	printMemory(memory);
 
+	(*addProcess)(20, 20, memory);
+	(*addProcess)(30, 5, memory);
+	(*addProcess)(100, 6, memory);
+	(*addProcess)(60, 30, memory);
+	
+	sleep(20);
+	printMemory(memory);
+	printf("\n------------PROCESS LIST:\n");
+	printProcessList(memory->firstProcessCase);
+
+	pthread_mutex_destroy(&mutex_listModify);
+
+	
 	return 0;
 }
 
@@ -230,6 +254,7 @@ void printProcessList(MemoryCase *firstProcessCase){
 	if(firstProcessCase){	
 		printf("\n----> PROCESS\n");
 		printf("ID: %lu\n", ((Process *)(firstProcessCase->holeOrProcess))->id);
+		printf("Final Time: %lu\n", ((Process *)(firstProcessCase->holeOrProcess))->finalTime);
 		printf("Size: %lu\n", firstProcessCase->size);
 		printf("Begin: %lu\n", firstProcessCase->begin);
 		printProcessList(((Process *)(firstProcessCase->holeOrProcess))->nextProcessCase);
@@ -288,13 +313,22 @@ MemoryCase *findTheWorstFitHoleCase(numberOfSpaces size, Memory *memory){
 
 MemoryCase *addProcessWorstFit(numberOfSpaces size, stepTime executionTime, Memory *memory){
 	MemoryCase *worstFitHoleCase = findTheWorstFitHoleCase(size, memory);
+	MemoryCase *response;
+	execution_arg *exec_arg;
 
 	if(memory->available < size || !worstFitHoleCase)
 		return nullMemoryCase();
 	if(size >= worstFitHoleCase->size)
-		return reallocAndInsert_worst(size, executionTime, worstFitHoleCase, memory);
+		response = reallocAndInsert_worst(size, executionTime, worstFitHoleCase, memory);
 	else
-		return divideAndInsert(size, executionTime, worstFitHoleCase, memory);
+		response = divideAndInsert(size, executionTime, worstFitHoleCase, memory);
+
+	exec_arg = (execution_arg *) malloc (sizeof(execution_arg));
+	exec_arg->selfCase = response;
+	exec_arg->memory = memory;
+	pthread_create(&(((Process *)(response->holeOrProcess))->execute), NULL, executeProcess, (void *)exec_arg );
+
+	return response;
 }
 
 MemoryCase *reallocAndInsert_worst(numberOfSpaces size, stepTime executionTime, MemoryCase *insertBegin, Memory *memory){
@@ -495,10 +529,10 @@ MemoryCase *overwriteHoleCase(stepTime executionTime, MemoryCase *holeToOverwrit
 	((Hole*)(holeToOverwrite->holeOrProcess))->prevHoleCase;
 
 	nextProcessCase = findNextTimeListProcessCase(executionTime + programTime, memory->firstProcessCase);
-	prevProcessCase = nextProcessCase ? ((Process *)(nextProcessCase->holeOrProcess))->prevProcessCase : nullMemoryCase();	
+	prevProcessCase = findPrevTimeListProcessCase(executionTime + programTime, memory->firstProcessCase);	
 	holeToOverwrite->holeOrProcess = createProcess(getNewProcessID(), executionTime + programTime, nextProcessCase, prevProcessCase);
 	
-	if(memory->firstProcessCase == nullMemoryCase() || nextProcessCase == memory->firstProcessCase)
+	if(nextProcessCase == memory->firstProcessCase)
 		memory->firstProcessCase = holeToOverwrite;
 	if(nextProcessCase)
 		((Process*)(nextProcessCase->holeOrProcess))->prevProcessCase = holeToOverwrite;
@@ -516,14 +550,34 @@ MemoryCase *findNextTimeListProcessCase(stepTime finalTime, MemoryCase *firstPro
 	else return findNextTimeListProcessCase(finalTime, ((Process *)(firstProcessCase->holeOrProcess))->nextProcessCase);
 }
 
+MemoryCase *findPrevTimeListProcessCase(stepTime finalTime, MemoryCase *firstProcessCase){
+	MemoryCase *prevProcessCase = nullMemoryCase();
+	while(firstProcessCase && finalTime > ((Process *)(firstProcessCase->holeOrProcess))->finalTime){
+			prevProcessCase = firstProcessCase;
+			firstProcessCase = ((Process *)(firstProcessCase->holeOrProcess))->nextProcessCase;
+	}
+	return prevProcessCase;
+}
+
 MemoryCase *addProcessFirstFit(numberOfSpaces size, stepTime executionTime, Memory *memory){
 	MemoryCase *firstHoleCase = memory->firstHoleCase;
+	MemoryCase *response;
+	execution_arg *exec_arg;
+
 	if(memory->available < size || !firstHoleCase)
 		return nullMemoryCase();
+
 	if(size >= firstHoleCase->size)
-		return reallocAndInsert_best(size, executionTime, firstHoleCase, memory);
+		response = reallocAndInsert_best(size, executionTime, firstHoleCase, memory);
 	else
-		return divideAndInsert(size, executionTime, firstHoleCase, memory);
+		response = divideAndInsert(size, executionTime, firstHoleCase, memory);
+
+	exec_arg = (execution_arg *) malloc (sizeof(execution_arg));
+	exec_arg->selfCase = response;
+	exec_arg->memory = memory;
+	pthread_create(&(((Process *)(response->holeOrProcess))->execute), NULL, executeProcess, (void *)exec_arg );
+
+	return response;
 }
 
 /*BEST FIT INSERTION*/
@@ -543,13 +597,22 @@ MemoryCase *findTheBestFitHoleCase(numberOfSpaces size, Memory *memory){
 
 MemoryCase *addProcessBestFit(numberOfSpaces size, stepTime executionTime, Memory *memory){
 	MemoryCase *bestFitHoleCase = findTheBestFitHoleCase(size, memory);
+	MemoryCase *response;
+	execution_arg *exec_arg;
 
 	if(memory->available < size || !bestFitHoleCase)
 		return nullMemoryCase();
 	if(size >= bestFitHoleCase->size)
-		return reallocAndInsert_best(size, executionTime, bestFitHoleCase, memory);
+		response = reallocAndInsert_best(size, executionTime, bestFitHoleCase, memory);
 	else
-		return divideAndInsert(size, executionTime, bestFitHoleCase, memory);
+		response = divideAndInsert(size, executionTime, bestFitHoleCase, memory);
+
+	exec_arg = (execution_arg *) malloc (sizeof(execution_arg));
+	exec_arg->selfCase = response;
+	exec_arg->memory = memory;
+	pthread_create(&(((Process *)(response->holeOrProcess))->execute), NULL, executeProcess, (void *)exec_arg );
+
+	return response;
 }
 
 MemoryCase *divideAndInsert(numberOfSpaces size, stepTime executionTime, MemoryCase * holeCaseToDivide, Memory *memory){
@@ -558,7 +621,7 @@ MemoryCase *divideAndInsert(numberOfSpaces size, stepTime executionTime, MemoryC
 	MemoryCase *prevProcessCase;
 
 	nextProcessCase = findNextTimeListProcessCase(executionTime + programTime, memory->firstProcessCase);
-	prevProcessCase = nextProcessCase ? ((Process *)(nextProcessCase->holeOrProcess))->prevProcessCase : nullMemoryCase();
+	prevProcessCase = findPrevTimeListProcessCase(executionTime + programTime, memory->firstProcessCase);
 	newProcessCase = createProcessCase(getNewProcessID(), executionTime + programTime, holeCaseToDivide->begin, size,
 					   nextProcessCase, prevProcessCase, holeCaseToDivide, holeCaseToDivide->prev);
 
@@ -819,6 +882,30 @@ processID getNewProcessID(void){
 }
 
 /*--------------------TIME FUNCTIONS-----------------------*/
+
+void * incrementStepTime(void *vargp){
+	for(;;++programTime)
+		sleep(1);
+}
+
+void * executeProcess(void *vargp){
+	execution_arg *exec_arg = (execution_arg *) vargp;	
+	time_t t;
+	srand((unsigned) time(&t));
+	sleep(rand() % 10);
+
+	pthread_mutex_lock(&mutex_listModify);
+	endProcess(exec_arg->selfCase, exec_arg->memory);
+	pthread_mutex_unlock(&mutex_listModify);
+
+	pthread_exit((void *)NULL);
+}
+
+/*-----------------THREADS FUNCTIONS-----------------------*/
+
+/*pthread_mutex_t mutex_listModify;
+pthread_cond_t cond_listModify;*/
+
 
 
 
