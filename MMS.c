@@ -17,6 +17,7 @@ typedef unsigned long numberOfSpaces;
 typedef unsigned long processID;
 typedef unsigned long numberOfProcesses;
 typedef int destructType;
+typedef int insertionMode;
 
 /*--------------------------ENUMS--------------------------*/
 
@@ -80,17 +81,14 @@ Process * allocProcess(void);
 /*2. Create functions*/
 
 Memory * createMemory(numberOfSpaces size);
-MemoryCase * createMemoryCase(memoryCaseType type, space begin, numberOfSpaces size,
-							  MemoryCase *next, MemoryCase *prev);
+MemoryCase * createMemoryCase(memoryCaseType type, space begin, numberOfSpaces size,MemoryCase *next, MemoryCase *prev);
 MemoryCase * createHoleCase(space begin, numberOfSpaces size, MemoryCase *nextHoleCase,
 							MemoryCase *prevHoleCase, MemoryCase *next, MemoryCase *prev);
 MemoryCase * createProcessCase(processID id, time finalTime, space begin, numberOfSpaces size,
 							   MemoryCase *nextProcessCase, MemoryCase *prevProcessCase,
 							   MemoryCase *next, MemoryCase *prev);
 Hole * createHole(MemoryCase *nextHoleCase, MemoryCase *prevHoleCase);
-Process * createProcess(processID id, time finalTime, 
-						MemoryCase *nextProcessCase, 
-						MemoryCase *prevProcessCase);
+Process * createProcess(processID id, time finalTime, MemoryCase *nextProcessCase, MemoryCase *prevProcessCase);
 MemoryCase * createInitialHoleCase(numberOfSpaces size);
 
 /*3. Null functions*/
@@ -131,66 +129,75 @@ MemoryCase * destructWithoutMerge(MemoryCase *processCase, MemoryCase *prevHoleC
 MemoryCase * removeProcessOfProcessList(MemoryCase *processCase, Memory *memory);
 MemoryCase * mergeHoleCases(MemoryCase *holeCaseA, MemoryCase *holeCaseB, Memory *memory);
 
+/*8. Menu functions*/
+void printInsertionModeSelectionMenu(void);
+insertionMode getInsertionMode(void);
+void printMemorySizeMenu(void);
+numberOfSpaces getMemorySize(void);
+
 
 /*-------------------------MAIN----------------------------*/
 
 int main(void){
 
 	Memory *memory;
-	MemoryCase *aux[3];
-	memory = createMemory(300);
+	MemoryCase *(*addProcess)();
+	MemoryCase *test[3];
+	memory = createMemory(getMemorySize());
 	
 	printf("Criada uma memoria de tamanho: %lu\n", memory->available);
-	aux[0] = addProcessFirstFit(200, 10, memory);
-	printf("---------------------MEMORY LIST---->");
-	printMemory(memory->begin);
+	switch(getInsertionMode()){
+		case 1:
+			addProcess = addProcessFirstFit;
+			break;
+		case 2:
+			addProcess = addProcessWorstFit;
+			break;
+		case 3:
+			addProcess = addProcessBestFit;
+			break;
+		default:
+			printf("\nERROR!\n");
+			exit(1); 
+	}
 
-	aux[1] = addProcessFirstFit(20, 10, memory);
-	printf("---------------------MEMORY LIST---->");
-	printMemory(memory->begin);
-
-	aux[2] = addProcessFirstFit(40, 5, memory);
-	printf("---------------------MEMORY LIST---->");
-	printMemory(memory->begin);
-
-	endProcess(aux[1], memory);
-	printf("---------------------MEMORY LIST---->");
-	printMemory(memory->begin);
-
-	printf("--------------------HOLE LIST------->");
-	printHoleList(memory->firstHoleCase);
-
-	aux[1] = addProcessFirstFit(30, 4, memory);
-	printf("---------------------MEMORY LIST---->");
-	printMemory(memory->begin);
-
-	endProcess(aux[1], memory);
-	printf("---------------------MEMORY LIST---->");
-	printMemory(memory->begin);
-
-	aux[1] = addProcessFirstFit(30, 4, memory);
-	printf("---------------------MEMORY LIST---->");
-	printMemory(memory->begin);
-
-	endProcess(aux[0], memory);
-	printf("---------------------MEMORY LIST---->");
-	printMemory(memory->begin);
-
-	endProcess(aux[1], memory);
-	printf("---------------------MEMORY LIST---->");
-	printMemory(memory->begin);
-
-	endProcess(aux[2], memory);
-	printf("---------------------MEMORY LIST---->");
-	printMemory(memory->begin);
-
+	test[0] = (*addProcess)(10, 30, memory);
+	test[1] =(*addProcess)(20, 50, memory);
+	test[2] =(*addProcess)(50, 20, memory);
+	endProcess(test[1], memory);
+	test[1] = (*addProcess)(60, 40, memory);
 	
-	printf("\n\n\n\n\n--------------------PROCESS LIST---->");
-	printProcessList(memory->firstProcessCase);
-	printf("--------------------HOLE LIST------->");
-	printHoleList(memory->firstHoleCase);
+	printf("\n--------------MEMORY STATUS-------------");
+	printMemory(memory->begin);
 
 	return 0;
+}
+
+/*---------------------MENU FUNCTIONS----------------------*/
+
+void printInsertionModeSelectionMenu(void){
+	printf("\nSelect the insertion mode: ");
+	printf("\n1. First-Fit.\n2. Worst-Fit\n3. Best-Fit\n\nSelect: ");
+}
+
+insertionMode getInsertionMode(void){
+	insertionMode option;
+	printInsertionModeSelectionMenu();
+	do{	
+		scanf("%d", &option);
+	}while(option < 1 && option > 3);
+	return option;
+}
+
+void printMemorySizeMenu(void){
+	printf("\nType the memory size: ");
+}
+
+numberOfSpaces getMemorySize(void){
+	numberOfSpaces size;
+	printMemorySizeMenu();
+	scanf("%lu", &size);
+	return size;
 }
 
 /*--------------------PRINT FUNCTIONS----------------------*/
