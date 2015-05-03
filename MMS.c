@@ -304,7 +304,8 @@ MemoryCase *reallocAndInsert_worst(numberOfSpaces size, time executionTime, Memo
 	numberOfSpaces currentNextSize = 0;
 	
 	while(insertBegin->size + currentPrevSize + currentNextSize < size){
-		if(currentPrevHoleCase->size < currentNextHoleCase->size){
+		if(abs((size - (currentPrevSize + currentNextSize)) - currentPrevHoleCase->size) >
+		   abs((size - (currentPrevSize + currentNextSize)) - currentNextHoleCase->size)){
 			if(currentPrevHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize > size)
 				currentPrevSize += (size - currentNextSize - currentPrevSize - insertBegin->size);
 			else
@@ -387,7 +388,8 @@ MemoryCase *reallocAndInsert_best(numberOfSpaces size, time executionTime, Memor
 	numberOfSpaces currentNextSize = 0;
 	
 	while(insertBegin->size + currentPrevSize + currentNextSize < size){
-		if(currentPrevHoleCase->size > currentNextHoleCase->size){
+		if(abs((size - (currentPrevSize + currentNextSize)) - currentPrevHoleCase->size) <
+		   abs((size - (currentPrevSize + currentNextSize)) - currentNextHoleCase->size)){
 			if(currentPrevHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize > size)
 				currentPrevSize += (size - currentNextSize - currentPrevSize - insertBegin->size);
 			else
