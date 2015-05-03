@@ -115,7 +115,7 @@ MemoryCase * addProcessBestFit(numberOfSpaces size, time executionTime, Memory *
 
 /*6. Print functions*/
 
-void printMemory(MemoryCase *firstCase);
+void printMemory(Memory *memory);
 void printProcessList(MemoryCase *firstProcessCase);
 void printHoleList(MemoryCase *firstHoleCase);
 
@@ -145,7 +145,7 @@ int main(void){
 	MemoryCase *test[3];
 	memory = createMemory(getMemorySize());
 	
-	printf("Criada uma memoria de tamanho: %lu\n", memory->available);
+	printf("Done.\n");
 	switch(getInsertionMode()){
 		case 1:
 			addProcess = addProcessFirstFit;
@@ -167,8 +167,7 @@ int main(void){
 	endProcess(test[1], memory);
 	test[1] = (*addProcess)(60, 40, memory);
 	
-	printf("\n--------------MEMORY STATUS-------------");
-	printMemory(memory->begin);
+	printMemory(memory);
 
 	return 0;
 }
@@ -202,8 +201,13 @@ numberOfSpaces getMemorySize(void){
 
 /*--------------------PRINT FUNCTIONS----------------------*/
 
-void printMemory(MemoryCase *firstCase){
-	MemoryCase *firstPrintedCase = firstCase;
+void printMemory(Memory *memory){
+	MemoryCase *firstPrintedCase = memory->begin;
+	MemoryCase *firstCase = memory->begin;
+
+	printf("\n--------------MEMORY STATUS-------------");
+	printf("\nAvailable: %lu\nUsing: %lu\n", memory->available, memory->inUse);
+
 	do{
 		if(firstCase->type == hole){
 			printf("\n----> HOLE\n");
@@ -365,6 +369,9 @@ MemoryCase *reallocAndInsert_worst(numberOfSpaces size, time executionTime, Memo
 	insertBegin->begin = insertBegin->prev->size + insertBegin->prev->begin >= memory->inUse + memory->available ?
 						insertBegin->prev->size + insertBegin->prev->begin - memory->inUse + memory->available :
 						insertBegin->prev->size + insertBegin->prev->begin;
+	
+	memory->available -= size;
+	memory->inUse+=size;
 
 	return overwriteHoleCase(executionTime, insertBegin, memory);
 }
@@ -445,6 +452,9 @@ MemoryCase *reallocAndInsert_best(numberOfSpaces size, time executionTime, Memor
 	insertBegin->begin = insertBegin->prev->size + insertBegin->prev->begin >= memory->inUse + memory->available ?
 						insertBegin->prev->size + insertBegin->prev->begin - memory->inUse + memory->available :
 						insertBegin->prev->size + insertBegin->prev->begin;
+	
+	memory->available -= size;
+	memory->inUse+=size;
 
 	return overwriteHoleCase(executionTime, insertBegin, memory);
 }
@@ -562,6 +572,9 @@ MemoryCase *divideAndInsert(numberOfSpaces size, time executionTime, MemoryCase 
 	if(prevProcessCase)
 		((Process*)(prevProcessCase->holeOrProcess))->nextProcessCase = newProcessCase;
 
+	memory->available -= size;
+	memory->inUse+=size;
+
 	return newProcessCase;
 }
 
@@ -608,6 +621,10 @@ MemoryCase * endProcess(MemoryCase *processCase, Memory *memory){
 	
 	if(processCase->type != process)
 		return nullMemoryCase();
+	else{
+		memory->available += processCase->size;
+		memory->inUse-= processCase->size;
+	}
 	
 	nextHoleCase = findNextHoleCase(processCase, memory);
 	prevHoleCase = findPrevHoleCase(processCase, memory);
