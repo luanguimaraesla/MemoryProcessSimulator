@@ -1,5 +1,5 @@
 all:	MMS.c
-	gcc -ansi -Wall -pedantic -o simulator MMS.c
+	gcc -ansi -Wall -pedantic -pthread -o simulator MMS.c
 
 run:
 	./simulator
