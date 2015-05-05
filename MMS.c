@@ -11,13 +11,13 @@
 #define DESTRUCT_MERGE_NEXT     1
 #define DESTRUCT_MERGE_PREV     2
 #define DESTRUCT_MERGE_BOTH     3
-#define MAX_PROCESS_SIZE 50
-#define MAX_PRIORITY_INDEX 5
-#define MAX_PROCESS_GENERATE_SLEEP 70
-#define SCREEN_UPDATE_FREQUENCY 60
-#define MAX_PROCESS_TIME 7
+#define MAX_PROCESS_TIME 20
 #define MEMORY_UI_X 600
 #define MEMORY_UI_Y 180
+
+#define GREEN "#00FF00"
+#define BLACK "#00000f"
+#define RED "#FFFFFF"
 
 /*--------------------------TYPEDEFS----------------------------*
  *                                                              *
@@ -375,77 +375,59 @@ void ask_rcp_args(rcp_arg *args){
  *--------------------------------------------------------------*/
 
 void printMemory(Memory *memory, ui_param *ui_params){
-	MemoryCase *firstPrintedCase = memory->begin;
 	MemoryCase *firstCase = memory->begin;
+	static int green_rect_count;
+	static int black_rect_count;
+	static char available[15], used[15], running[15], total[15];
+	static XColor black_col, green_col, red_col;
+	static Colormap colormap_black, colormap, colormap_red;
+	static GC black_gc, green_gc, red_gc;
+	static bool setColor = true;
+	static float begin, size;
+	static int end, end_2;
+	static XRectangle r, r2;
+	XRectangle *green_rects = (XRectangle *) malloc (sizeof(XRectangle) * memory->running);
+	XRectangle *black_rects = (XRectangle *) malloc (sizeof(XRectangle) * memory->running);
 
-	/*dados da janela*/
-	Display *dis = ui_params -> dis;
-	Window win = ui_params -> win;
+	if(setColor){
+		/*green gc*/
+		colormap = DefaultColormap(ui_params->dis, 0);
+		green_gc = XCreateGC(ui_params->dis, ui_params->win, 0, 0);
+		XParseColor(ui_params->dis, colormap, GREEN, &green_col);
+		XAllocColor(ui_params->dis, colormap, &green_col);
+		XSetForeground(ui_params->dis, green_gc, green_col.pixel);
 
-	/*green gc*/
-	XColor green_col;
-	Colormap colormap;
-	char green[] = "#00FF00";
-	colormap = DefaultColormap(dis, 0);
-	GC green_gc = XCreateGC(dis, win, 0, 0);
-	XParseColor(dis, colormap, green, &green_col);
-	XAllocColor(dis, colormap, &green_col);
-	XSetForeground(dis, green_gc, green_col.pixel);
+		/*black gc*/
+		colormap_black = DefaultColormap(ui_params->dis, 0);
+		black_gc = XCreateGC(ui_params->dis, ui_params->win, 0, 0);
+		XParseColor(ui_params->dis, colormap_black, BLACK, &black_col);
+		XAllocColor(ui_params->dis, colormap_black, &black_col);
+		XSetForeground(ui_params->dis, black_gc, black_col.pixel);
 
-	/*black gc*/
-	XColor black_col;
-	Colormap colormap_black;
-	char black[] = "#00000f";
-	colormap_black = DefaultColormap(dis, 0);
-	GC black_gc = XCreateGC(dis, win, 0, 0);
-	XParseColor(dis, colormap_black, black, &black_col);
-	XAllocColor(dis, colormap_black, &black_col);
-	XSetForeground(dis, black_gc, black_col.pixel);
+		/*red gc*/
+		colormap_red = DefaultColormap(ui_params->dis, 0);
+		red_gc = XCreateGC(ui_params->dis, ui_params->win, 0, 0);
+		XParseColor(ui_params->dis, colormap_red, RED, &red_col);
+		XAllocColor(ui_params->dis, colormap_red, &red_col);
+		XSetForeground(ui_params->dis, red_gc, red_col.pixel);
+	
+		setColor = false;
+	}
 
-	/*red gc*/
-	XColor red_col;
-	Colormap colormap_red;
-	char red[] = "#FFFFFF";
-	colormap_red = DefaultColormap(dis, 0);
-	GC red_gc = XCreateGC(dis, win, 0, 0);
-	XParseColor(dis, colormap_red, red, &red_col);
-	XAllocColor(dis, colormap_red, &red_col);
-	XSetForeground(dis, red_gc, red_col.pixel);
+	XDrawRectangle(ui_params->dis, ui_params->win, red_gc, 150, 10, 604, 180);
+	XFlush(ui_params->dis);
 
-	XDrawRectangle(dis, win, red_gc, 150, 10, 604, 180);
-	XFlush(dis);
-	//limpa a area de string
-	XClearArea(dis, win, 0,0, 140, 180, 0);
-
-	//cria as strings
-	char available[15], used[15];
-	long unsigned av = memory->available;
-	long unsigned us = memory->inUse;
-	sprintf(available, "%lu",av);
-	sprintf(used, "%lu",us);
-
-	//desenha elas na tela.
-	XDrawString(dis, win, green_gc, 10, 20, "Avaible: ", 8);
-	XDrawString(dis, win, green_gc, 70, 20, available, 8);
-	XDrawString(dis, win, green_gc, 10, 35, "Using: ", 8);
-	XDrawString(dis, win, green_gc, 70, 35, used, 8);
-	XFlush(dis);
-
-	//array de retangulos para serem inseridos
-	XRectangle green_rects[memory->total];
-	XRectangle black_rects[memory->total];
-	int green_rect_count = 0;
-	int black_rect_count = 0;
+	/*array de retangulos para serem inseridos*/
+	green_rect_count = 0;
+	black_rect_count = 0;
 
 	do{
 		if(firstCase->type == hole){
-			float begin = ((firstCase->begin)*(ui_params->byte_size));
-			float size = ((firstCase->size)*(ui_params->byte_size));
+			begin = ((firstCase->begin)*(ui_params->byte_size));
+			size = ((firstCase->size)*(ui_params->byte_size));
 			if((MEMORY_UI_X - begin) < size){
-
-				int end = MEMORY_UI_X - begin;
+				end = MEMORY_UI_X - begin;
 				
-				XRectangle r;
 				r.x = begin + 152;
 				r.y = 12;
 				r.width = end;
@@ -454,9 +436,8 @@ void printMemory(Memory *memory, ui_param *ui_params){
 				green_rects[green_rect_count] = r;
 				green_rect_count++;
 
-				int end_2 = MEMORY_UI_X - (size + begin);
+				end_2 = MEMORY_UI_X - (size + begin);
 
-				XRectangle r2;
 				r2.x = 152;
 				r2.y = 12;
 				r2.width = end_2;
@@ -467,7 +448,6 @@ void printMemory(Memory *memory, ui_param *ui_params){
 
 			} else {
 
-				XRectangle r;
 				r.x = begin + 152;
 				r.y = 12;
 				r.width = size;
@@ -475,17 +455,14 @@ void printMemory(Memory *memory, ui_param *ui_params){
 
 				green_rects[green_rect_count] = r;
 				green_rect_count++;
-
 			}
 		}
 		else{
-			float begin = ((firstCase->begin)*(ui_params->byte_size));
-			float size = ((firstCase->size)*(ui_params->byte_size));
+			begin = ((firstCase->begin)*(ui_params->byte_size));
+			size = ((firstCase->size)*(ui_params->byte_size));
 			if((MEMORY_UI_X - begin) < size){
-
-				int end = MEMORY_UI_X - begin;
-				
-				XRectangle r;
+				end = MEMORY_UI_X - begin;
+		
 				r.x = begin + 152;
 				r.y = 12;
 				r.width = end;
@@ -494,9 +471,7 @@ void printMemory(Memory *memory, ui_param *ui_params){
 				black_rects[black_rect_count] = r;
 				black_rect_count++;
 				
-				int end_2 = size - begin;
-
-				XRectangle r2;
+				end_2 = size - begin;
 				r2.x = 152;
 				r2.y = 12;
 				r2.width = end_2;
@@ -506,8 +481,6 @@ void printMemory(Memory *memory, ui_param *ui_params){
 				black_rect_count++;
 
 			} else {
-
-				XRectangle r;
 				r.x = begin + 152;
 				r.y = 12;
 				r.width = size;
@@ -519,19 +492,36 @@ void printMemory(Memory *memory, ui_param *ui_params){
 			}
 		}
 
-		//insere os retangulos
-		XFillRectangles(dis, win, black_gc, green_rects, green_rect_count);
-		XFillRectangles(dis, win, green_gc, black_rects, black_rect_count);
-
-		//print da memoria no console.
-		printf("\e[H\e[2J");
-		printf("\n--------------MEMORY STATUS-------------");
-		printf("\nAvailable: %lu\nUsing: %lu\n", memory->available, memory->inUse);
-
+		/*insere os retangulos*/
+		XFillRectangles(ui_params->dis, ui_params->win, black_gc, green_rects, green_rect_count);
+		XFillRectangles(ui_params->dis, ui_params->win, green_gc, black_rects, black_rect_count);
+		
 		firstCase = firstCase->next;
-	}while(firstCase != firstPrintedCase);
+	}while(firstCase != memory->begin);
 
-	
+	/*cria as strings*/
+	sprintf(available, "%-14lu", memory->available);
+	sprintf(used, "%-14lu", memory->inUse);
+	sprintf(running, "%-14lu",memory->running);
+	sprintf(total, "%-14lu",memory->total);
+
+	/*limpa a area de string*/
+	XClearArea(ui_params->dis, ui_params->win, 0,0, 140, 180, 0);
+
+	/*desenha strings na tela.*/
+	XDrawString(ui_params->dis, ui_params->win, green_gc, 10, 20, "Avaible: ", 8);
+	XDrawString(ui_params->dis, ui_params->win, green_gc, 70, 20, available, 8);
+	XDrawString(ui_params->dis, ui_params->win, green_gc, 10, 35, "Using:  ", 8);
+	XDrawString(ui_params->dis, ui_params->win, green_gc, 70, 35, used, 8);
+	XDrawString(ui_params->dis, ui_params->win, green_gc, 10, 50 , "Running:  ", 8);
+	XDrawString(ui_params->dis, ui_params->win, green_gc, 70, 50, running, 8);
+	XDrawString(ui_params->dis, ui_params->win, green_gc, 10, 75, "Total:  ", 8);
+	XDrawString(ui_params->dis, ui_params->win, green_gc, 70, 75, total, 8);
+	XFlush(ui_params->dis);
+
+	free(green_rects);
+	free(black_rects);
+
 }
 
 /*criar interface*/
@@ -539,11 +529,12 @@ void printMemory(Memory *memory, ui_param *ui_params){
 ui_param * createUI(fu_arg *frame_update_args){
 	Display *dis;
 	Window win;
+	ui_param *ui;
 	dis = XOpenDisplay(NULL);
 	win = XCreateSimpleWindow(dis, RootWindow(dis, 0), 1, 1, 800, 200, 0, BlackPixel (dis, 0), BlackPixel(dis, 0));
 	XMapWindow(dis, win);
 	XFlush(dis);
-	ui_param *ui = (ui_param*)malloc(sizeof(ui_param));
+	ui = (ui_param*)malloc(sizeof(ui_param));
 	ui->win = win;
 	ui->dis = dis;
 	return ui;
@@ -1713,7 +1704,6 @@ void * plotMemoryStatus(void *vargp){
 	
 	while(*(args->frame_update)){
 		pthread_mutex_lock(&mutex_listModify);
-		printf("\e[H\e[2J");
 		printMemory(args->memory, args->ui_params);
 		pthread_mutex_unlock(&mutex_listModify);
 		sleep(1);
