@@ -16,7 +16,14 @@
 #define SCREEN_UPDATE_FREQUENCY 60
 #define MAX_PROCESS_TIME 7
 
-/*------------------------TYPEDEFS-------------------------*/
+/*--------------------------TYPEDEFS----------------------------*
+ *                                                              *
+ *	Para uma melhor compreensão e, levando em consideração      *
+ *	a manutensibilidade e flexibilidade do código, optou-se     *
+ *	por utilizar nomes alternativos para cada tipo de dado      *
+ *	presente no sistema.                                        *
+ *                                                              *
+ *--------------------------------------------------------------*/
 
 typedef unsigned int priority;
 typedef unsigned long space;
@@ -26,7 +33,14 @@ typedef unsigned long numberOfProcesses;
 typedef int destructType;
 typedef int insertionMode;
 
-/*--------------------------ENUMS--------------------------*/
+/*----------------------------ENUMS-----------------------------*
+ *                                                              *
+ *	Enumerações foram utilizadas para manter a coerência        *
+ *  das estruturas, já que, limitando o número de dados de      *
+ *	determinado tipo, possíveis erros de atribuições incon-     *
+ *	sistentes serão evitados ou mais facilmente detectados.     *
+ *                                                              *
+ *--------------------------------------------------------------*/
 
 enum bool{
 	false, true
@@ -39,7 +53,22 @@ enum memoryCaseType{
 typedef enum memoryCaseType memoryCaseType;
 typedef enum bool bool;
 
-/*-----------------------STRUCTS---------------------------*/
+/*---------------------------STRUCTS----------------------------*
+ *                                                              *
+ *	Foram criadas estruturas que se dividem em quatro grupos:   *
+ *                                                              * 
+ *  1. Elementares: conjunto de estruturas que definem um nó    *
+ *                  da lista encadeada.                         *
+ *                                                              *
+ *  2. Cabeçalho: responsável pelo gerenciamento do conjunto    *
+ *                de nós existentes na lista encadeada.         *
+ *                                                              *
+ *  3. Argumentos: para a utilização da função criadora de      *
+ *                 threads, foi necessária a criação de es-     *
+ *                 truturas que agregassem os parâmetros das    *
+ *                 funções executadas por cada thread.          *
+ *                                                              *
+ *--------------------------------------------------------------*/
 
 struct MemoryCase{
 	memoryCaseType type;	
@@ -100,22 +129,36 @@ typedef struct ExecProcessArg execution_arg;
 typedef struct RandomCreateProcessesArg rcp_arg;
 typedef struct FrameUpdateArg fu_arg;
 
-/*--------------------GLOBAL VARIABLES---------------------*/
+/*-----------------------GLOBAL VARIABLES-----------------------*
+ *                                                              *
+ *     A utilização de variáveis globais é desencorajada pois   *
+ *     acarreta em preocupações com modificações inconsistentes *
+ *     já que são visíveis a todas funções.                     *
+ *	   Entretanto, variáveis utilizadas para fechaduras (locks) *
+ *     e semáforos devem ser acessíveis para todas funções      *
+ *                                                              *
+ *--------------------------------------------------------------*/
+
 
 pthread_mutex_t mutex_listModify;
 pthread_cond_t cond_listModify;
 
-/*-------------------FUNCTIONS HEADERS---------------------*/
+/*-----------------------FUNCTION PROTOTYPES--------------------*
+ *                                                              *
+ *    Seguem todos os protótipos das funções escritas neste     *
+ *    programa. A utilização de protótipos visa uma melhor      *
+ *    compreensão do conjunto de funções responsáveis por uma   *
+ *    atividade específica.                                     *
+ *                                                              *
+ *--------------------------------------------------------------*/
 
-/*1. Alloc functions*/
-
+/*1. ALLOC FUNCTIONS */
 Memory * allocMemory(void);
 MemoryCase * allocMemoryCase(void);
 Hole * allocHole(void);
 Process * allocProcess(void);
 
-/*2. Create functions*/
-
+/*2. CREATE FUNCTIONS */
 Memory * createMemory(numberOfSpaces size);
 MemoryCase * createMemoryCase(memoryCaseType type, space begin, numberOfSpaces size,MemoryCase *next, MemoryCase *prev);
 MemoryCase * createHoleCase(space begin, numberOfSpaces size, MemoryCase *nextHoleCase,
@@ -127,37 +170,32 @@ Hole * createHole(MemoryCase *nextHoleCase, MemoryCase *prevHoleCase);
 Process * createProcess(processID id, priority index, MemoryCase *nextProcessCase, MemoryCase *prevProcessCase);
 MemoryCase * createInitialHoleCase(numberOfSpaces size);
 
-/*3. Null functions*/
-
+/*3. NULL FUNCTIONS */
 MemoryCase * nullMemoryCase(void);
 
-/*4. Auxiliar functions*/
-
+/*4. AUXILIAR FUNCTIONS */
 processID getNewProcessID(void);
 
-/*5. Add process functions*/
-
-MemoryCase *addProcessFirstFit(numberOfSpaces size, priority index, Memory *memory);
-MemoryCase *reallocAndInsert_best(numberOfSpaces size, priority index, MemoryCase *insertBegin, Memory *memory);
-void removeHoleCase(MemoryCase *toRemove, Memory *memory);
-MemoryCase *overwriteHoleCase(priority index, MemoryCase *holeToOverwrite, Memory *memory);
-MemoryCase *findNextPriorityListProcessCase(priority index, MemoryCase *firstProcessCase);
-MemoryCase *divideAndInsert(numberOfSpaces size, priority index, MemoryCase * holeCaseToDivide, Memory *memory);
-MemoryCase *findTheBestFitHoleCase(numberOfSpaces size, Memory *memory);
-MemoryCase *reallocAndInsert_worst(numberOfSpaces size, priority index, MemoryCase *insertBegin, Memory *memory);
-MemoryCase *findTheWorstFitHoleCase(numberOfSpaces size, Memory *memory);
+/*5. ADD PROCESS FUNCTIONS */
+MemoryCase * addProcessFirstFit(numberOfSpaces size, priority index, Memory *memory);
+MemoryCase * reallocAndInsert_best(numberOfSpaces size, priority index, MemoryCase *insertBegin, Memory *memory);
+MemoryCase * overwriteHoleCase(priority index, MemoryCase *holeToOverwrite, Memory *memory);
+MemoryCase * findNextPriorityListProcessCase(priority index, MemoryCase *firstProcessCase);
+MemoryCase * divideAndInsert(numberOfSpaces size, priority index, MemoryCase * holeCaseToDivide, Memory *memory);
+MemoryCase * findTheBestFitHoleCase(numberOfSpaces size, Memory *memory);
+MemoryCase * reallocAndInsert_worst(numberOfSpaces size, priority index, MemoryCase *insertBegin, Memory *memory);
+MemoryCase * findTheWorstFitHoleCase(numberOfSpaces size, Memory *memory);
 MemoryCase * addProcessWorstFit(numberOfSpaces size, priority index, Memory *memory);
 MemoryCase * addProcessBestFit(numberOfSpaces size, priority index, Memory *memory);
-MemoryCase *findPrevPriorityListProcessCase(priority index, MemoryCase *firstProcessCase);
+MemoryCase * findPrevPriorityListProcessCase(priority index, MemoryCase *firstProcessCase);
+void removeHoleCase(MemoryCase *toRemove, Memory *memory);
 
-/*6. Print functions*/
-
+/*6. PRINT FUNCTIONS */
 void printMemory(Memory *memory);
 void printProcessList(MemoryCase *firstProcessCase);
 void printHoleList(MemoryCase *firstHoleCase);
 
-/*7. End process functions*/
-
+/*7. ENDP PROCESS FUNCTIONS */
 MemoryCase * endProcess(MemoryCase *processCase, Memory *memory);
 destructType selectDestructType(MemoryCase *processCase, MemoryCase *prevHoleCase, MemoryCase *nextHoleCase);
 MemoryCase * findPrevHoleCase(MemoryCase *processCase, Memory *memory);
@@ -166,20 +204,45 @@ MemoryCase * destructWithoutMerge(MemoryCase *processCase, MemoryCase *prevHoleC
 MemoryCase * removeProcessOfProcessList(MemoryCase *processCase, Memory *memory);
 MemoryCase * mergeHoleCases(MemoryCase *holeCaseA, MemoryCase *holeCaseB, Memory *memory);
 
-/*8. Menu functions*/
+/*8. MENU FUNCTIONS */
 void printInsertionModeSelectionMenu(void);
 insertionMode getInsertionMode(void);
 void printMemorySizeMenu(void);
 numberOfSpaces getSize(void);
 void ask_rcp_args(rcp_arg *args);
 
-/*9. thread functions*/
+/*9. THREADS FUNCTIONS */
 void * executeProcess(void *vargp);
 void * randomCreateProcesses(void *vargp);
 void * plotMemoryStatus(void *vargp);
 
 
-/*-------------------------MAIN----------------------------*/
+/*-----------------------------MAIN-----------------------------*
+ *                                                              *
+ *    Função principal contendo a inicialização dos diferen-    *
+ *    tes processos para a simulação de uma memória.            *
+ *	                                                            *
+ *    1. Inicialização da memória com um tamanho especificado   *
+ *    pelo usuário.                                             *
+ *    2. Inicialização dos parâmetros de entrada para a função  *
+ *    geradora de processos, incluindo a determinação de qual   *
+ *    tipo de inserção (first-fit, best-fit, worst-fit) será    *
+ *    utilizada.                                                *
+ *    3. Inicialização da variável mutex_listModify. Esta é     *
+ *    responsável pelo controle de acesso à memória             *
+ *    4. Cria as threads para criação de processos e atualiza-  *
+ *    ção do frame de exibição.                                 *
+ *    5. Espera até que todos os processos sejam criados e a    *
+ *    thread criadora de processos seja encerrada.              *
+ *    6. Aguarda para que processos ainda em execução sejam     *
+ *    finalizados.                                              *
+ *    7. Bloqueia a atualização do frame.                       *
+ *    8. Aguarda até que a thread de atualização do frame seja  *
+ *    encerrada.                                                *
+ *    9. Destrói a fechadura da variável mutex_listModify.      *
+ *	 10. Encerra a thread principal.                            *
+ *                                                              *
+ *--------------------------------------------------------------*/
 
 int main(void){
 
@@ -200,7 +263,6 @@ int main(void){
 	pthread_create(&processesCreation, NULL, randomCreateProcesses, &args);
 	pthread_create(&frameUpdate, NULL, plotMemoryStatus, &frame_update_args);
 
-
 	pthread_join(processesCreation, NULL);
 
 	while(memory->firstProcessCase);
@@ -214,7 +276,21 @@ int main(void){
 	return 0;
 }
 
-/*---------------------MENU FUNCTIONS----------------------*/
+/*-------------------------MENU FUNCTIONS-----------------------*
+ *                                                              *
+ *    Nesse trecho são declaradas as funções de interação com   *
+ *    o usuário. São responsáveis por:                          *
+ *    1. Perguntar e recuperar o tamanho da memória no início   *
+ *    da execução de um programa.                               *
+ *    2. Perguntar o tipo de inserção que o usuário deseja      *
+ *    aplicar durante a execução do programa (first fit, best   *
+ *    fit e worst fit).                                         *
+ *    3. Perguntar e recuperar a quantidade de processos a se-  *
+ *    rem criados, o tempo máximo entre a criação de cada pro-  *
+ *    cesso, o tamanho máximo que um processo pode ter e quan-  *
+ *    tos níveis de prioridade serão estabelecidos.             * 
+ *                                                              *
+ *--------------------------------------------------------------*/
 
 void printInsertionModeSelectionMenu(void){
 	printf("\nSelect the insertion mode: ");
@@ -272,7 +348,13 @@ void ask_rcp_args(rcp_arg *args){
 
 }
 
-/*--------------------PRINT FUNCTIONS----------------------*/
+/*------------------------PRINT FUNCTIONS-----------------------*
+ *                                                              *
+ *   Nessa parte estão implementadas todas as funções para      *
+ *   a impressão e visualização instantânea da memória, da      *
+ *   lista de processos e da lista de buracos.                  * 
+ *                                                              *
+ *--------------------------------------------------------------*/
 
 void printMemory(Memory *memory){
 	MemoryCase *firstPrintedCase = memory->begin;
@@ -291,7 +373,8 @@ void printMemory(Memory *memory){
 		}
 		else{
 			printf("\n----> PROCESS\n");
-			printf("ID: %lu\n", ((Process *)(firstCase->holeOrProcess))->id);
+			printf("ID: %lu\n", ((Process *)(firstCase->holeOrProcess))->id);			
+			printf("Priority: %d\n", ((Process *)(firstCase->holeOrProcess))->index);
 			printf("Size: %lu\n", firstCase->size);
 			printf("Begin: %lu\n", firstCase->begin);
 		}
@@ -322,14 +405,42 @@ void printHoleList(MemoryCase *firstHoleCase){
 	}
 }
 
+/*------------------------MEMORY FUNCTIONS----------------------*
+ *                                                              *
+ *   Nesta sessão, estão implementadas todas as funções rela-   *
+ *   cionadas ao gerenciamento, criação e exclusão de proces-   *
+ *   sos dentro da memória.                                     *
+ *   Devido a complexissidade de alguns algoritmos presentes    *
+ *   nesse trecho do código, cada função conterá uma explica-   *
+ *   ção individual.                                            * 
+ *                                                              *
+ *--------------------------------------------------------------*/
 
-/*-------------------MEMORY FUNCTIONS----------------------*/
 
 Memory * allocMemory(void){
+	/*---------------------------DESCRIÇÃO----------------------------*
+     *                                                                *
+     *	Aloca dinamicamente uma estrutura do time Memory.             *
+     *                                                                *
+     *----------------------------------------------------------------*/
 	return (Memory *) malloc (sizeof(Memory));
 }
 
 Memory * createMemory(numberOfSpaces size){
+	/*------------------------------DESCRIÇÃO----------------------------*
+     *                                                                   *
+     *	Inicializa uma memória preparando-a para o início do programa,   *
+	 *  isto é:                                                          *
+	 *  1. Cria um buraco com o tamanho definido pelo usuário;           *
+     *  2. Seta como disponível todo esse espaço;                        *
+     *  3. Seta como zero os espaços em uso (não há processos);          *
+     *  4. Seta como zero a quantidade de processos sendo executados     *
+     *     e a quantidade total de processos.                            *
+     *  5. Atribui como início da lista encadeada da memória o buraco    *
+     *     criado.                                                       *
+     *                                                                   *
+     *-------------------------------------------------------------------*/
+
 	Memory *newMemory;
 
 	newMemory = allocMemory();
@@ -344,9 +455,346 @@ Memory * createMemory(numberOfSpaces size){
 	return newMemory;
 }
 
-/*WORST FIT INSERTION*/
+
+
+/*----------------------BEST FIT INSERTION----------------------*
+ *                                                              *
+ *   As funções a seguir fazem parte do grupo responsável pela  *
+ *   inserção no modo 'best fit'. Esse analiza a lista de bu-   *
+ *   racos, escolhendo um cujo módulo da diferença entre seu    *
+ *   tamanho e o tamanho do processo a ser incluído seja o      *
+ *   menor possível entre os buracos.                           * 
+ *                                                              *
+ *--------------------------------------------------------------*/
+
+MemoryCase *reallocAndInsert_best(numberOfSpaces size, priority index, MemoryCase *insertBegin, Memory *memory){
+	/*--------------------------------DESCRIÇÃO--------------------------------*
+     *                                                                         *
+     *    Esse algoritmo é considerado um dos corações do programa. Ele é      *
+     *    responsável por varrer a memória duplamente e circularmente enca-    *
+     *    deada a partir de um nó aleatório, fazendo isso em ambos sentidos    *
+     *    simultâneamente.                                                     *
+     *    Essa função é chamada sempre que buraco escolhido para a inserção    *
+     *    de um processo é menor do que o necessário para a alocação do mesmo, *
+     *    ocasionando a necessidade do deslocamento dos processos imediata-    *
+     *    mente vizinhos de forma com que esse espaço seja "aberto".           *
+     *    O objetivo é encontrar, seguindo um algoritmo de busca estabelecido, *
+     *    os limites do deslocamento para trás e para frente e só depois des-  *
+     *    locar os processos até esses limites, criando um espaço "no meio" de *
+     *    tamanho perfeito para a alocação do novo processo.                   *
+     *    O seu funcionamento está melhor descrito nos cometários seguintes.   * 
+     *                                                                         *
+     *-------------------------------------------------------------------------*/
+
+    /*--------------------------DESCRIÇÃO DO ALGORÍTMO---------------------------*
+     *                                                                           *
+     *   O parâmetro 'MemoryCase *inserBegin' já comporta o buraco de inserção   *
+     *   previamente escolhido. Podemos, então, começar a verificação dos des-   *
+     *   locamentos a partir dos buracos imediatamente vizinhos, para trás e     *
+     *   para frente. 'currentPrevHoleCase' e 'currentNextHoleCase' são, então,  *
+     *   setados com esses valores.                                              *
+	 *	 O ponteiro 'runner' terá sua utilidade explicada adiante.               *
+	 *	 A variáveis currentNextSize e currentPrevSize armazenam o número de     *
+     *   posições deslocadas em relação ao início da busca (insertBegin). Já     *
+     *   'currentSizeAux' armazena o valor total dos deslocamento, tanto para    *
+     *   frente, quanto para trás.                                               *
+     *                                                                           *
+     *---------------------------------------------------------------------------*/
+
+	MemoryCase *currentPrevHoleCase = ((Hole*)(insertBegin->holeOrProcess))->prevHoleCase;
+	MemoryCase *currentNextHoleCase = ((Hole*)(insertBegin->holeOrProcess))->nextHoleCase;
+	MemoryCase *runner;
+	numberOfSpaces currentSizeAux = 0;
+	numberOfSpaces currentPrevSize = 0;
+	numberOfSpaces currentNextSize = 0;
+	
+	/*---------------------------DESCRIÇÃO DO ALGORÍTMO---------------------------*
+     *                                                                            *
+     *    O algoritmo a seguir busca os limites de deslocamento para trás e       *
+     *    para frente dos processos vizinhos até que seja possível, deslocando    *
+     *    esses processos até esses limites, inserir um novo processo de tama-    *
+     *    nho 'size' entre eles. Para isso, percorre-se os buracos a partir de    *
+     *    'currentPrevHoleCase' e 'currentNextHoleCase', que começam respecti-    *
+     *    vamente nos buracos imediatamente vizinhos à esquerda e à direita na    *
+     *    lista.                                                                  *
+	 *    Compara-se o módulo da diferença entre a quantidade de espaços que      *
+     *    restam ser deslocados e o tamanho do buraco a esquerda com o módulo     *
+     *    dessa mesma diferença só que com o tamanho do buraco a direita,         *
+     *    Então, por se tratar de uma inserção <best fit>, opta-se pelo caminho   *
+     *    (nó) cujo módulo dessa diferença seja o menor, isto é, escolhe-se o     *
+     *    buraco com o tamanho mais próximo ao que resta ser inserido.            *
+	 *    Quando esse buraco é selecionado, o contador que armazena a quantida-   *
+     *    de de espaços a serem deslocados para essa direção é incrementado do    *
+     *    valor de seu tamanho e, então, o apontador do buraco selecionado passa  *
+     *    a referenciar o próximo buraco da lista seguindo sua direção.           *
+     *    Ou seja, caso 'currentPrevHoleCase' (apontador para buracos à esquerda) *
+     *    seja o buraco selecionado, seu tamanho é adicionado a 'currentPrevSize' *
+     *    (contador de espaços que serão deslocados para esquerda) e então esse   *
+     *    ponteiro passa a referenciar o próximo buraco a esquerda.               *
+     *    Esse processo se repete até que a soma dos contadores de espaço seja    *
+     *    maior ou igual ao tamanho do processo a ser inserido menos o tamanho    *
+     *    do espaço central (insertBegin).                                        *
+     *                                                                            *
+     *----------------------------------------------------------------------------*/
+	while(insertBegin->size + currentPrevSize + currentNextSize < size){
+		if(abs((size - (currentPrevSize + currentNextSize)) - currentPrevHoleCase->size) <
+		   abs((size - (currentPrevSize + currentNextSize)) - currentNextHoleCase->size)){
+			if(currentPrevHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize > size)
+				currentPrevSize += (size - currentNextSize - currentPrevSize - insertBegin->size);
+			else
+				currentPrevSize += currentNextHoleCase->size;
+			currentPrevHoleCase = ((Hole *)(currentPrevHoleCase->holeOrProcess))->prevHoleCase;
+		}
+		else{
+			if(currentNextHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize > size)
+				currentNextSize += (size - currentNextSize - currentPrevSize - insertBegin->size);
+			else
+				currentNextSize += currentNextHoleCase->size;
+			currentNextHoleCase = ((Hole *)(currentNextHoleCase->holeOrProcess))->nextHoleCase;
+		}
+	}
+
+	/*---------------------------DESCRIÇÃO DO ALGORÍTMO---------------------------*
+     *                                                                            *
+     *    O algoritmo a seguir desloca os processos a direita até o limite esta-  *
+     *    belecido no código descrito acima. O cálculo é simples, cada processo   *
+     *    encontrado pelo apontador 'runner', que percorre a memória do nó à ime- *
+     *    diatamente a direita do 'centro' (insertBegin) até o limite a direita,  *
+     *    é deslocado para a direita segundo:                                     *
+     *                                                                            *
+     *                         P(k) = P(k-1) + (N - S)                            *
+     *                                                                            *
+     *    P = posição inicial;                                                    *
+     *    k = relacional de tempo, no caso, P(k-1) é a posição anterior;          *
+     *    N = tamanho que deve ser deslocado a direita;                           *
+     *    S = soma dos tamanhos dos buracos encontrados entre o 'centro' e o li-  *
+     *        mite a direita.                                                     *
+     *                                                                            *
+     *    Cada vez que runner encontra um buraco antes do limite, esse buraco é   *
+     *    removido e seu tamanho é adicionado em S.                               *
+     *                                                                            *
+     *    Obs.: É importante observar que caso o valor do tamanho da memória seja *
+     *    ultrapassado, por se tratar de uma lista circular, significa que o pro- *
+     *    cesso deve continuar na posição inicial. Essa verificação e o possível  *
+     *    ajuste de valores é implementada nos dois condicionais ternários abaixo.*
+     *                                                                            *
+     *                       P(k) = P(k-1) + (N - S) - T                          *
+     *                                                                            *
+     *    T = tamanho absoluto da memória.                                        *
+     *----------------------------------------------------------------------------*/
+	runner = insertBegin->next;
+	while(runner != currentNextHoleCase && currentNextSize){
+		if(runner->type == process){
+			runner->begin = (currentNextSize - currentSizeAux) + runner->begin >= memory->available + memory->inUse ?
+					 	 runner->begin + (currentNextSize - currentSizeAux) - memory->available - memory->inUse :
+						 runner->begin + (currentNextSize - currentSizeAux);
+		}		
+		else{
+			if(currentNextSize > currentSizeAux + runner->size){
+				currentSizeAux += runner->size;
+				runner = runner->next;
+				removeHoleCase(runner->prev, memory);
+				continue;
+			}
+			else{
+				runner->size -= currentNextSize - currentSizeAux;
+				runner->begin = (currentNextSize - currentSizeAux) + runner->begin >= memory->available + memory->inUse ?
+					 	 runner->begin + (currentNextSize - currentSizeAux) - memory->available - memory->inUse :
+						 runner->begin + (currentNextSize - currentSizeAux);
+				if(runner->size == 0)
+						removeHoleCase(runner, memory);
+				break;
+			}
+		}
+		runner = runner->next;
+	}
+
+    /*---------------------------DESCRIÇÃO DO ALGORÍTMO---------------------------*
+     *                                                                            *
+     *    A ideia do próximo conjunto de instruções é a mesma do anterior, porém  *
+     *    para a esquerda. Alguns ajustes devem ser feitos no cálculo, veja:      *
+     *                                                                            *
+     *                         P(k) = P(k-1) - (L - S)                            *
+     *                                                                            *
+     *    P = posição inicial;                                                    *
+     *    k = relacional de tempo, no caso, P(k-1) é a posição anterior;          *
+     *    L = tamanho que deve ser deslocado a esquerda;                          *
+     *    S = soma dos tamanhos dos buracos encontrados entre o 'centro' e o li-  *
+     *        mite a esquerda (começa em 0).                                      *
+     *                                                                            *
+     *    Cada vez que runner encontra um buraco antes do limite, esse buraco é   *
+     *    removido e seu tamanho é adicionado em S da mesma forma como o deslo-   *    
+     *    camento a direita.                                                      *
+     *                                                                            *
+     *    Obs.: Diferentemente do deslocamento a direita, a preocupação inerente  *
+     *    se dá em relação ao estouro da posição zero, já que decrementações su-  *
+     *    cessivas acarretariam em algum momento neste fato. A verificação é      *
+     *    feita pelos operadores ternários a seguir e, caso haja um estouro,      *
+     *    a posição pode ser determinada pelo seguinte cálculo:                   *
+     *                                                                            *
+     *                     P(k) = T - | P(k-1) - (L - S) |                        *
+     *                                                                            *           
+     *    T = tamanho absoluto da memória.                                        *
+     *                                                                            *
+     *----------------------------------------------------------------------------*/
+	currentSizeAux = 0;
+	runner = insertBegin->prev;
+	while(runner != currentPrevHoleCase && currentPrevSize){
+		if(runner->type == process)
+			runner->begin = (signed long)(runner->begin) - (signed long)(currentPrevSize - currentSizeAux) < 0 ?
+					memory->available + memory->inUse - abs((signed long)(runner->begin) - (signed long)(currentPrevSize - currentSizeAux)) :
+					runner->begin - (currentPrevSize - currentSizeAux);
+		else{
+			if(currentPrevSize > currentSizeAux + runner->size){
+				currentSizeAux += runner->size;
+				runner = runner->prev;
+				removeHoleCase(runner->next, memory);
+				continue;
+			}
+			else{
+				runner->size -= (currentPrevSize - currentSizeAux);
+				if(runner->size == 0)
+						removeHoleCase(runner, memory);
+				break;
+			}
+		}
+		runner = runner->prev;
+	}
+	
+	insertBegin->size = size;
+	insertBegin->begin = (insertBegin->prev->size + insertBegin->prev->begin) >= memory->inUse + memory->available ?
+						insertBegin->prev->size + insertBegin->prev->begin - memory->inUse - memory->available :
+						insertBegin->prev->size + insertBegin->prev->begin;
+	
+	memory->available -= size;
+	memory->inUse+=size;
+
+	return overwriteHoleCase(index, insertBegin, memory);
+}
+
+MemoryCase *findTheBestFitHoleCase(numberOfSpaces size, Memory *memory){
+	/*------------------------------DESCRIÇÃO----------------------------*
+     *                                                                   *
+     *  Função que percorre a toda a lista de buracos escolhendo um      *
+     *  cujo módulo da diferença entre seu tamanho e o tamanho do pro-   *
+     *  a ser incluído seja o menor possível entre os buracos            *
+     *                                                                   *
+     *-------------------------------------------------------------------*/
+
+	MemoryCase * runner = memory->firstHoleCase;
+	MemoryCase * bestFitHoleCase = runner;
+	numberOfSpaces minDiference = runner->size;
+	do{
+		if(abs(runner->size - size) < minDiference){
+			minDiference = abs(runner->size - size);
+			bestFitHoleCase = runner;
+		}
+		runner = ((Hole *)(runner->holeOrProcess))->nextHoleCase;
+	}while(runner != memory->firstHoleCase);
+	return bestFitHoleCase;	
+}
+
+MemoryCase *addProcessBestFit(numberOfSpaces size, priority index, Memory *memory){
+    /*------------------------------DESCRIÇÃO------------------------------*
+     *                                                                     *
+     *  Nessa função é inicialmente feita uma verificação para saber se    *
+     *  o processo a ser inserido cabe na memória, se não couber, a ope-   * 
+     *  ração e descartada e retorna um valor nulo.                        *
+	 *  Se o processo couber, verifica-se, então, se o buraco encontrado   *
+     *  pela função acima é suficientemente grande para a alocação do      *
+     *  processo. Se for, a função divideAndInsert é chamada, seu          *
+     *  funcionamento será descrito a seguir, mas, basicamente, essa       *
+     *  função cria um processo entre o espaço e o nó anterior, redimen-   *
+     *  sionando o buraco e alocando na memória o novo processo.           *
+     *  Se não for, a função reallocAndInsert_best é chamada, seu fun-     *
+     *  cionamento já foi descrito acima, mas, basicamente, ela percorre   *
+     *  a lista a partir do ponto de inserção escolhido e, deslocando      *
+     *  processos, forma um espaço suficientemente grande para alocar o    *
+     *  processo desejado.                                                 *
+     *  O processo permanece inativo na memória até que a thread 'execute' *
+     *  seja criada, então o processo começa a ser executado.              *
+     *                                                                     *
+     *---------------------------------------------------------------------*/	
+	MemoryCase *bestFitHoleCase = findTheBestFitHoleCase(size, memory);
+	MemoryCase *response;
+	execution_arg *exec_arg;
+
+	if(memory->available < size || !bestFitHoleCase)
+		return nullMemoryCase();
+	if(size >= bestFitHoleCase->size)
+		response = reallocAndInsert_best(size, index, bestFitHoleCase, memory);
+	else
+		response = divideAndInsert(size, index, bestFitHoleCase, memory);
+
+	exec_arg = (execution_arg *) malloc (sizeof(execution_arg));
+	exec_arg->selfCase = response;
+	exec_arg->memory = memory;
+	(memory->running)++;
+	(memory->total)++;
+	pthread_create(&(((Process *)(response->holeOrProcess))->execute), NULL, executeProcess, (void *)exec_arg );
+
+	return response;
+}
+
+MemoryCase *divideAndInsert(numberOfSpaces size, priority index, MemoryCase * holeCaseToDivide, Memory *memory){
+	/*------------------------------DESCRIÇÃO------------------------------*
+     *                                                                     *
+     *    Essa função é chamada quando um buraco é suficientemente grande  *
+     *    para conter um processo. Basicamente, ela reduz o espaço desse   *
+     *    buraco e insere na lista encadeada um novo nó contendo um pro-   *
+     *    cesso imediatamente entre o buraco e o nó anterior a ele.        *
+     *                                                                     *
+     *---------------------------------------------------------------------*/
+	MemoryCase *newProcessCase;
+	MemoryCase *nextProcessCase;
+	MemoryCase *prevProcessCase;
+
+	nextProcessCase = findNextPriorityListProcessCase(index, memory->firstProcessCase);
+	prevProcessCase = findPrevPriorityListProcessCase(index, memory->firstProcessCase);
+	newProcessCase = createProcessCase(getNewProcessID(), index, holeCaseToDivide->begin, size,
+					   nextProcessCase, prevProcessCase, holeCaseToDivide, holeCaseToDivide->prev);
+
+	holeCaseToDivide->size -= size;
+	holeCaseToDivide->begin = (size + holeCaseToDivide->begin) > memory->inUse + memory->available?
+				   size + holeCaseToDivide->begin - memory->inUse - memory->available :
+				   size + holeCaseToDivide->begin;
+	holeCaseToDivide->prev->next = newProcessCase;
+	holeCaseToDivide->prev = newProcessCase;
+
+	if(holeCaseToDivide == memory->begin)
+		memory->begin = newProcessCase;
+	if(nextProcessCase == memory->firstProcessCase)
+		memory->firstProcessCase = newProcessCase;
+	if(nextProcessCase)
+		((Process*)(nextProcessCase->holeOrProcess))->prevProcessCase = newProcessCase;
+	if(prevProcessCase)
+		((Process*)(prevProcessCase->holeOrProcess))->nextProcessCase = newProcessCase;
+
+	memory->available -= size;
+	memory->inUse+=size;
+
+	return newProcessCase;
+}
+
+/*---------------------WORST FIT INSERTION----------------------*
+ *                                                              *
+ *   As funções a seguir fazem parte do grupo responsável pela  *
+ *   inserção no modo 'worst fit'. Esse analiza a lista de bu-  *
+ *   racos, escolhendo um cujo módulo da diferença entre seu    *
+ *   tamanho e o tamanho do processo a ser incluído seja o      *
+ *   maior possível entre os buracos.                           * 
+ *                                                              *
+ *--------------------------------------------------------------*/
+
 
 MemoryCase *findTheWorstFitHoleCase(numberOfSpaces size, Memory *memory){
+    /*------------------------------DESCRIÇÃO----------------------------*
+     *                                                                   *
+     *  Função que percorre a toda a lista de buracos escolhendo um      *
+     *  cujo módulo da diferença entre seu tamanho e o tamanho do pro-   *
+     *  a ser incluído seja o maior possível entre os buracos./           *
+     *                                                                   *
+     *-------------------------------------------------------------------*/
 	MemoryCase * runner = memory->firstHoleCase;
 	MemoryCase * worstFitHoleCase = runner;
 	numberOfSpaces maxDiference = 0;
@@ -361,6 +809,26 @@ MemoryCase *findTheWorstFitHoleCase(numberOfSpaces size, Memory *memory){
 }
 
 MemoryCase *addProcessWorstFit(numberOfSpaces size, priority index, Memory *memory){
+    /*------------------------------DESCRIÇÃO------------------------------*
+     *                                                                     *
+     *  Nessa função é inicialmente feita uma verificação para saber se    *
+     *  o processo a ser inserido cabe na memória, se não couber, a ope-   * 
+     *  ração e descartada e retorna um valor nulo.                        *
+	 *  Se o processo couber, verifica-se, então, se o buraco encontrado   *
+     *  pela função acima é suficientemente grande para a alocação do      *
+     *  processo. Se for, a função divideAndInsert é chamada, seu          *
+     *  funcionamento será descrito a seguir, mas, basicamente, essa       *
+     *  função cria um processo entre o espaço e o nó anterior, redimen-   *
+     *  sionando o buraco e alocando na memória o novo processo.           *
+     *  Se não for, a função reallocAndInsert_worst é chamada, seu fun-    *
+     *  cionamento também será descrito a seguir, mas, basicamente, ela    *
+     *  percorre a lista a partir do ponto de inserção escolhido e, des-   *
+     *  locando processos, forma um espaço suficientemente grande para     *
+     *  alocar o processo desejado.                                        *
+     *  O processo permanece inativo na memória até que a thread 'execute' *
+     *  seja criada, então o processo começa a ser executado.              *
+     *                                                                     *
+     *---------------------------------------------------------------------*/
 	MemoryCase *worstFitHoleCase = findTheWorstFitHoleCase(size, memory);
 	MemoryCase *response;
 	execution_arg *exec_arg;
@@ -375,12 +843,24 @@ MemoryCase *addProcessWorstFit(numberOfSpaces size, priority index, Memory *memo
 	exec_arg = (execution_arg *) malloc (sizeof(execution_arg));
 	exec_arg->selfCase = response;
 	exec_arg->memory = memory;
+	(memory->running)++;
+	(memory->total)++;
 	pthread_create(&(((Process *)(response->holeOrProcess))->execute), NULL, executeProcess, (void *)exec_arg );
 
 	return response;
 }
 
 MemoryCase *reallocAndInsert_worst(numberOfSpaces size, priority index, MemoryCase *insertBegin, Memory *memory){
+    /*------------------------------DESCRIÇÃO------------------------------*
+     *                                                                     *
+     *    O funcionamento dessa função é praticamente igual ao da          *
+     *    'reallocAndInsert_best' com apenas uma exceção: os módulos       *
+     *    das diferenças de tamanho entre o espaço que resta ser inse-     *
+     *    rido e os buracos a esquerda e a direita são comparados de       *
+     *    forma diferente, optando pelo buraco cuja diferença de tamanho   *
+     *    seja a maior possível.                                           *
+     *                                                                     *
+     *---------------------------------------------------------------------*/
 	MemoryCase *currentPrevHoleCase = ((Hole*)(insertBegin->holeOrProcess))->prevHoleCase;
 	MemoryCase *currentNextHoleCase = ((Hole*)(insertBegin->holeOrProcess))->nextHoleCase;
 	MemoryCase *runner;
@@ -470,95 +950,54 @@ MemoryCase *reallocAndInsert_worst(numberOfSpaces size, priority index, MemoryCa
 
 /*FIRST FIT INSERTION*/
 
-MemoryCase *reallocAndInsert_best(numberOfSpaces size, priority index, MemoryCase *insertBegin, Memory *memory){
-	MemoryCase *currentPrevHoleCase = ((Hole*)(insertBegin->holeOrProcess))->prevHoleCase;
-	MemoryCase *currentNextHoleCase = ((Hole*)(insertBegin->holeOrProcess))->nextHoleCase;
-	MemoryCase *runner;
-	numberOfSpaces currentSizeAux = 0;
-	numberOfSpaces currentPrevSize = 0;
-	numberOfSpaces currentNextSize = 0;
-	
-	while(insertBegin->size + currentPrevSize + currentNextSize < size){
-		if(abs((size - (currentPrevSize + currentNextSize)) - currentPrevHoleCase->size) <
-		   abs((size - (currentPrevSize + currentNextSize)) - currentNextHoleCase->size)){
-			if(currentPrevHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize > size)
-				currentPrevSize += (size - currentNextSize - currentPrevSize - insertBegin->size);
-			else
-				currentPrevSize += currentNextHoleCase->size;
-			currentPrevHoleCase = ((Hole *)(currentPrevHoleCase->holeOrProcess))->prevHoleCase;
-		}
-		else{
-			if(currentNextHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize > size)
-				currentNextSize += (size - currentNextSize - currentPrevSize - insertBegin->size);
-			else
-				currentNextSize += currentNextHoleCase->size;
-			currentNextHoleCase = ((Hole *)(currentNextHoleCase->holeOrProcess))->nextHoleCase;
-		}
-	}
+MemoryCase *addProcessFirstFit(numberOfSpaces size, priority index, Memory *memory){
+    /*------------------------------DESCRIÇÃO------------------------------*
+     *                                                                     *
+     *  Nessa função é inicialmente feita uma verificação para saber se    *
+     *  o processo a ser inserido cabe na memória, se não couber, a ope-   * 
+     *  ração e descartada e retorna um valor nulo.                        *
+	 *  Se o processo couber, verifica-se, então, se o buraco encontrado   *
+     *  na primeira posiçaõ é suficientemente grande para a alocação do    *
+     *  processo. Se for, a função divideAndInsert é chamada, basicamente, * 
+     *  essa função cria um processo entre o espaço e o nó anterior,       *
+     *  redimensionando o buraco e alocando na memória o novo processo.    *
+     *  Se não for, a função reallocAndInsert_best é chamada, basicamente, * 
+     *  ela percorre a lista a partir do ponto de inserção escolhido e,    * 
+     *  des locando processos, forma um espaço suficientemente grande pa-  *
+     *  ra alocar o processo desejado.                                     *
+     *  O processo permanece inativo na memória até que a thread 'execute' *
+     *  seja criada, então o processo começa a ser executado.              *
+     *                                                                     *
+     *---------------------------------------------------------------------*/
 
-	runner = insertBegin->next;
-	while(runner != currentNextHoleCase && currentNextSize){
-		if(runner->type == process){
-			runner->begin = (currentNextSize - currentSizeAux) + runner->begin >= memory->available + memory->inUse ?
-					 	 runner->begin + (currentNextSize - currentSizeAux) - memory->available - memory->inUse :
-						 runner->begin + (currentNextSize - currentSizeAux);
-		}		
-		else{
-			if(currentNextSize > currentSizeAux + runner->size){
-				currentSizeAux += runner->size;
-				runner = runner->next;
-				removeHoleCase(runner->prev, memory);
-				continue;
-			}
-			else{
-				runner->size -= currentNextSize - currentSizeAux;
-				runner->begin = (currentNextSize - currentSizeAux) + runner->begin >= memory->available + memory->inUse ?
-					 	 runner->begin + (currentNextSize - currentSizeAux) - memory->available - memory->inUse :
-						 runner->begin + (currentNextSize - currentSizeAux);
-				if(runner->size == 0)
-						removeHoleCase(runner, memory);
-				break;
-			}
-		}
-		runner = runner->next;
-	}
+	MemoryCase *firstHoleCase = memory->firstHoleCase;
+	MemoryCase *response;
+	execution_arg *exec_arg;
 
-	currentSizeAux = 0;
-	runner = insertBegin->prev;
-	while(runner != currentPrevHoleCase && currentPrevSize){
-		if(runner->type == process)
-			runner->begin = (signed long)(runner->begin) - (signed long)(currentPrevSize - currentSizeAux) < 0 ?
-					memory->available + memory->inUse - abs((signed long)(runner->begin) - (signed long)(currentPrevSize - currentSizeAux)) :
-					runner->begin - (currentPrevSize - currentSizeAux);
-		else{
-			if(currentPrevSize > currentSizeAux + runner->size){
-				currentSizeAux += runner->size;
-				runner = runner->prev;
-				removeHoleCase(runner->next, memory);
-				continue;
-			}
-			else{
-				runner->size -= (currentPrevSize - currentSizeAux);
-				if(runner->size == 0)
-						removeHoleCase(runner, memory);
-				break;
-			}
-		}
-		runner = runner->prev;
-	}
-	
-	insertBegin->size = size;
-	insertBegin->begin = (insertBegin->prev->size + insertBegin->prev->begin) >= memory->inUse + memory->available ?
-						insertBegin->prev->size + insertBegin->prev->begin - memory->inUse - memory->available :
-						insertBegin->prev->size + insertBegin->prev->begin;
-	
-	memory->available -= size;
-	memory->inUse+=size;
+	if(memory->available < size || !firstHoleCase)
+		return nullMemoryCase();
 
-	return overwriteHoleCase(index, insertBegin, memory);
+	if(size >= firstHoleCase->size)
+		response = reallocAndInsert_best(size, index, firstHoleCase, memory);
+	else
+		response = divideAndInsert(size, index, firstHoleCase, memory);
+
+	exec_arg = (execution_arg *) malloc (sizeof(execution_arg));
+	exec_arg->selfCase = response;
+	exec_arg->memory = memory;
+	(memory->running)++;
+	(memory->total)++;
+	pthread_create(&(((Process *)(response->holeOrProcess))->execute), NULL, executeProcess, (void *)exec_arg );
+
+	return response;
 }
 
 void removeHoleCase(MemoryCase *toRemove, Memory *memory){
+    /*------------------------------DESCRIÇÃO------------------------------*
+     *                                                                     *
+     *  Essa função remove o nó 'toRemove' da lista de buracos da memória  *
+     *                                                                     *
+     *---------------------------------------------------------------------*/
 	if(((Hole *)(toRemove->holeOrProcess))->nextHoleCase == toRemove)
 		memory->firstHoleCase = nullMemoryCase();
 	else if(memory->firstHoleCase == toRemove)
@@ -576,6 +1015,16 @@ void removeHoleCase(MemoryCase *toRemove, Memory *memory){
 }		
 
 MemoryCase *overwriteHoleCase(priority index, MemoryCase *holeToOverwrite, Memory *memory){
+	/*------------------------------DESCRIÇÃO------------------------------*
+     *                                                                     *
+     *  Essa função sobrescreve um buraco com um processo, inserindo o nó  *
+     *  na lista de processos, removendo-o da lista de buracos e mantendo  *
+     *  as dimensões do buraco sobrescrito.                                *
+     *  Otimiza, assim, inclusões quando o processo é exatamente do mesmo  *
+     *  tamanho que o buraco, já que não precisremos redefinir os aponta-  *
+     *  dores da lista principal.                                          *
+     *                                                                     *
+     *---------------------------------------------------------------------*/
 	MemoryCase *nextProcessCase;
 	MemoryCase *prevProcessCase;
 
@@ -606,12 +1055,28 @@ MemoryCase *overwriteHoleCase(priority index, MemoryCase *holeToOverwrite, Memor
 }
 
 MemoryCase *findNextPriorityListProcessCase(priority index, MemoryCase *firstProcessCase){
+	/*------------------------------DESCRIÇÃO-------------------------------*
+     *                                                                      *
+     *  Essa função pesquisa na lista de processos, de acordo com a prio-   *
+     *  ridade de cada um, a posição imediata do primeiro nó de maior       *
+     *  prioridade em relação ao valor passado como parâmetro.              *
+     *  Por exemplo, se temos três processos com níveis de prioridade 1,    *
+     *  5 e 7, se passarmos para o parâmetro 'index' o valor 3, será devol- *
+     *  vido o segundo nó, cuja prioridade é 5.                             *
+     *                                                                      *
+     *----------------------------------------------------------------------*/
 	if(!firstProcessCase) return nullMemoryCase();
 	else if (((Process *)(firstProcessCase->holeOrProcess))->index >= index) return firstProcessCase;
 	else return findNextPriorityListProcessCase(index, ((Process *)(firstProcessCase->holeOrProcess))->nextProcessCase);
 }
 
 MemoryCase *findPrevPriorityListProcessCase(priority index, MemoryCase *firstProcessCase){
+	/*------------------------------DESCRIÇÃO-------------------------------*
+     *                                                                      *
+     *  Faz o mesmo que a função anterior, porém retorna a posição          *
+     *  imediata do primeiro nó de prioridade inferior.                     *
+     *                                                                      *
+     *----------------------------------------------------------------------*/
 	MemoryCase *prevProcessCase = nullMemoryCase();
 	while(firstProcessCase && index > ((Process *)(firstProcessCase->holeOrProcess))->index){
 			prevProcessCase = firstProcessCase;
@@ -620,95 +1085,19 @@ MemoryCase *findPrevPriorityListProcessCase(priority index, MemoryCase *firstPro
 	return prevProcessCase;
 }
 
-MemoryCase *addProcessFirstFit(numberOfSpaces size, priority index, Memory *memory){
-	MemoryCase *firstHoleCase = memory->firstHoleCase;
-	MemoryCase *response;
-	execution_arg *exec_arg;
-
-	if(memory->available < size || !firstHoleCase)
-		return nullMemoryCase();
-
-	if(size >= firstHoleCase->size)
-		response = reallocAndInsert_best(size, index, firstHoleCase, memory);
-	else
-		response = divideAndInsert(size, index, firstHoleCase, memory);
-
-	exec_arg = (execution_arg *) malloc (sizeof(execution_arg));
-	exec_arg->selfCase = response;
-	exec_arg->memory = memory;
-	pthread_create(&(((Process *)(response->holeOrProcess))->execute), NULL, executeProcess, (void *)exec_arg );
-
-	return response;
-}
-
-/*BEST FIT INSERTION*/
-MemoryCase *findTheBestFitHoleCase(numberOfSpaces size, Memory *memory){
-	MemoryCase * runner = memory->firstHoleCase;
-	MemoryCase * bestFitHoleCase = runner;
-	numberOfSpaces minDiference = runner->size;
-	do{
-		if(abs(runner->size - size) < minDiference){
-			minDiference = abs(runner->size - size);
-			bestFitHoleCase = runner;
-		}
-		runner = ((Hole *)(runner->holeOrProcess))->nextHoleCase;
-	}while(runner != memory->firstHoleCase);
-	return bestFitHoleCase;	
-}
-
-MemoryCase *addProcessBestFit(numberOfSpaces size, priority index, Memory *memory){
-	MemoryCase *bestFitHoleCase = findTheBestFitHoleCase(size, memory);
-	MemoryCase *response;
-	execution_arg *exec_arg;
-
-	if(memory->available < size || !bestFitHoleCase)
-		return nullMemoryCase();
-	if(size >= bestFitHoleCase->size)
-		response = reallocAndInsert_best(size, index, bestFitHoleCase, memory);
-	else
-		response = divideAndInsert(size, index, bestFitHoleCase, memory);
-
-	exec_arg = (execution_arg *) malloc (sizeof(execution_arg));
-	exec_arg->selfCase = response;
-	exec_arg->memory = memory;
-	pthread_create(&(((Process *)(response->holeOrProcess))->execute), NULL, executeProcess, (void *)exec_arg );
-
-	return response;
-}
-
-MemoryCase *divideAndInsert(numberOfSpaces size, priority index, MemoryCase * holeCaseToDivide, Memory *memory){
-	MemoryCase *newProcessCase;
-	MemoryCase *nextProcessCase;
-	MemoryCase *prevProcessCase;
-
-	nextProcessCase = findNextPriorityListProcessCase(index, memory->firstProcessCase);
-	prevProcessCase = findPrevPriorityListProcessCase(index, memory->firstProcessCase);
-	newProcessCase = createProcessCase(getNewProcessID(), index, holeCaseToDivide->begin, size,
-					   nextProcessCase, prevProcessCase, holeCaseToDivide, holeCaseToDivide->prev);
-
-	holeCaseToDivide->size -= size;
-	holeCaseToDivide->begin = (size + holeCaseToDivide->begin) > memory->inUse + memory->available?
-				   size + holeCaseToDivide->begin - memory->inUse - memory->available :
-				   size + holeCaseToDivide->begin;
-	holeCaseToDivide->prev->next = newProcessCase;
-	holeCaseToDivide->prev = newProcessCase;
-
-	if(holeCaseToDivide == memory->begin)
-		memory->begin = newProcessCase;
-	if(nextProcessCase == memory->firstProcessCase)
-		memory->firstProcessCase = newProcessCase;
-	if(nextProcessCase)
-		((Process*)(nextProcessCase->holeOrProcess))->prevProcessCase = newProcessCase;
-	if(prevProcessCase)
-		((Process*)(prevProcessCase->holeOrProcess))->nextProcessCase = newProcessCase;
-
-	memory->available -= size;
-	memory->inUse+=size;
-
-	return newProcessCase;
-}
+/*-----------------------REMOVE FUNCTIONS-----------------------*
+ *                                                              *
+ *   As funções a seguir fazem parte do grupo responsável pela  *
+ *   remoção de um processo da memória e da lista de processos  *
+ *                                                              *
+ *--------------------------------------------------------------*/
 
 MemoryCase * findNextHoleCase(MemoryCase *processCase, Memory* memory){
+    /*--------------------------------DESCRIÇÃO---------------------------------*
+     *                                                                          *
+     *  Função que encontra o primeiro próximo buraco em relação a um processo. *
+     *                                                                          *
+     *--------------------------------------------------------------------------*/
 	MemoryCase *runner = processCase->next;
 	do{
 		if(runner->type == hole)
@@ -718,9 +1107,13 @@ MemoryCase * findNextHoleCase(MemoryCase *processCase, Memory* memory){
 	return nullMemoryCase();
 }
 
-/*remove process functions*/
 
 MemoryCase * findPrevHoleCase(MemoryCase *processCase, Memory *memory){
+    /*--------------------------------DESCRIÇÃO---------------------------------*
+     *                                                                          *
+     *  Função que encontra o primeiro anterior buraco em relação a um processo.*
+     *                                                                          *
+     *--------------------------------------------------------------------------*/
 	MemoryCase *runner = processCase->prev;
 	do{
 		if(runner->type == hole)
@@ -732,7 +1125,24 @@ MemoryCase * findPrevHoleCase(MemoryCase *processCase, Memory *memory){
 
 destructType selectDestructType(MemoryCase *processCase, 
 								MemoryCase *prevHoleCase, 
-								MemoryCase *nextHoleCase){	
+								MemoryCase *nextHoleCase){
+	/*-----------------------------------DESCRIÇÃO-----------------------------------*
+     *                                                                               *
+     *  Função que toma como parâmetros um processo a ser excluído e seus bura-      *
+     *  cos vizinhos, selecionando o tipo de exclusão de processos que será          *
+     *  efetuada. Quatro casos são possíveis:                                        *
+	 *                                                                               *
+     *  1. Destruir processos sem mesclar buracos: acontece quando um processo tem   *
+     *  como vizinhos outros dois processos.                                         *
+     *  2. Destruir e mesclar para esquerda: acontece quando existe um processo a    *
+     *  direita e um buraco a esquerda do processo a ser excluído, ou seja, há a     *
+     *  necessidade de se unir esses dois processos.                                 *
+     *  3. Destruir e mesclar para direita: faz o mesmo que o anterior só que com    *
+     *  um buraco a direita.                                                         *
+     *  4. Destruir e mesclar para os dois lados: quando um processo excluído es-    *
+     *  tá entre dois buracos.                                                       *
+     *                                                                               *
+     *-------------------------------------------------------------------------------*/	
 	if (!nextHoleCase && !prevHoleCase)
 		return DESTRUCT_WITHOUT_MERGE;
 	else if (nextHoleCase == processCase->next && prevHoleCase == processCase->prev 
@@ -746,6 +1156,20 @@ destructType selectDestructType(MemoryCase *processCase,
 }
 
 MemoryCase * endProcess(MemoryCase *processCase, Memory *memory){
+	/*-----------------------------------DESCRIÇÃO-----------------------------------*
+     *                                                                               *
+     *  Função que encerra um processo.                                              *
+     *  Primeiro, verifica se o nó passado é um processo, se não for, retorna NULL,  *
+     *  depois, faz as alterações no cabeçalho dizendo que está prestes a excluir um *
+     *  processo. Então, um tipo de destruição de processos é selecionado com a fun- *
+     *  ção descrita acima.                                                          *
+     *  Depois, a função 'destructWithoutMerge é chamada, transformando um processo  *
+     *  em um buraco sem realizar nenhum tipo de verificação dos seus vizinhos.      *
+     *  Essa verificação já havia sido feita pela função selectDestructType. Então   *
+     *  o switch verifica se há a necessidade de se mesclar buracos e executa o      *
+     *  procedimento correto.                                                        *
+     *                                                                               *
+     *-------------------------------------------------------------------------------*/
 	MemoryCase *nextHoleCase, *prevHoleCase, *newHoleCase;
 	destructType option;
 	
@@ -756,6 +1180,8 @@ MemoryCase * endProcess(MemoryCase *processCase, Memory *memory){
 		memory->inUse-= processCase->size;
 	}
 	
+	(memory->running)--;
+
 	nextHoleCase = findNextHoleCase(processCase, memory);
 	prevHoleCase = findPrevHoleCase(processCase, memory);
 	
@@ -781,6 +1207,13 @@ MemoryCase * endProcess(MemoryCase *processCase, Memory *memory){
 
 MemoryCase * destructWithoutMerge(MemoryCase *processCase, MemoryCase *prevHoleCase, 
 				  MemoryCase *nextHoleCase, Memory *memory){
+    /*-----------------------------------DESCRIÇÃO-----------------------------------*
+     *                                                                               *
+     *  Função que destrói um processo sobrescrevendo-o com um buraco. Entretanto,   *
+     *  não faz a verificação dos buracos vizinhos para saber se há a necessidade    *
+     *  de se mesclar.                                                               *
+     *                                                                               *
+     *-------------------------------------------------------------------------------*/
 	Hole *aHole;
 	MemoryCase *holeCase;
 
@@ -802,7 +1235,12 @@ MemoryCase * destructWithoutMerge(MemoryCase *processCase, MemoryCase *prevHoleC
 }
 
 MemoryCase * removeProcessOfProcessList(MemoryCase *processCase, Memory *memory){
-
+    /*-----------------------------------DESCRIÇÃO-----------------------------------*
+     *                                                                               *
+     *  Dado um processo prestes a ser finalizado, essa função remove esse processo  *
+     *  da lista de processos.                                                       *
+     *                                                                               *
+     *-------------------------------------------------------------------------------*/
 	if(((Process *)(processCase->holeOrProcess))->prevProcessCase)
 		((Process*)(((Process *)(processCase->holeOrProcess))->prevProcessCase->holeOrProcess))->nextProcessCase = 
 		((Process *)(processCase->holeOrProcess))->nextProcessCase;
@@ -816,7 +1254,12 @@ MemoryCase * removeProcessOfProcessList(MemoryCase *processCase, Memory *memory)
 }
 
 MemoryCase * mergeHoleCases(MemoryCase *holeCaseA, MemoryCase *holeCaseB, Memory *memory){
-	
+	/*-----------------------------------DESCRIÇÃO-----------------------------------*
+     *                                                                               *
+     *  Função que mescla dois buracos consecutivos, excluindo da lista encadeada o  *
+     *  primeiro e adicionando seu tamanho ao segundo.                               *
+     *                                                                               *
+     *-------------------------------------------------------------------------------*/
 	MemoryCase *holeCaseAux;
 	if(holeCaseB->next == holeCaseA){
 		holeCaseAux = holeCaseA;
@@ -849,14 +1292,35 @@ MemoryCase * mergeHoleCases(MemoryCase *holeCaseA, MemoryCase *holeCaseB, Memory
 	return holeCaseB;
 }
 
-/*----------------MEMORY CASE FUNCTIONS--------------------*/
+/*---------------------MEMORYCASE FUNCTIONS-----------------------*
+ *                                                                *
+ *   MemoryCase pode ser definida como a estrutura primordial     *
+ *   que permite o funcionamento dessa simulação como uma lista.  *
+ *   Essa estrutura é um simples nó de uma lista, porém, um pon-  *
+ *   teiro do tipo void * permite que esse nó se torne um pro-    *
+ *   cesso ou um buraco.                                          *
+ *   Toda arquitetura desse software é baseada nessa estrutura    *
+ *   e nas seguintes funções de criação e inicialização da mes-   *
+ *   ma.                                                          *
+ *                                                                *
+ *----------------------------------------------------------------*/
 
 MemoryCase * allocMemoryCase(void){
+	/*-----------------------------------DESCRIÇÃO-----------------------------------*
+     *                                                                               *
+     *  Função que aloca dinamicamente um nó da lista encadeada.                     *
+     *                                                                               *
+     *-------------------------------------------------------------------------------*/
 	return (MemoryCase *) malloc (sizeof(MemoryCase));
 }
 
 MemoryCase * createMemoryCase(memoryCaseType type, space begin, numberOfSpaces size,
-							  MemoryCase *next, MemoryCase *prev){	
+							  MemoryCase *next, MemoryCase *prev){
+	/*-----------------------------------DESCRIÇÃO-----------------------------------*
+     *                                                                               *
+     *  Função que inicializa um nó criado com os valores dos parâmetros.            *
+     *                                                                               *
+     *-------------------------------------------------------------------------------*/	
 	MemoryCase *newMemoryCase;
 
 	newMemoryCase = allocMemoryCase();
@@ -872,6 +1336,12 @@ MemoryCase * createMemoryCase(memoryCaseType type, space begin, numberOfSpaces s
 MemoryCase * createProcessCase(processID id, priority index, space begin, numberOfSpaces size,
 							   MemoryCase *nextProcessCase, MemoryCase *prevProcessCase,
 							   MemoryCase *next, MemoryCase *prev){
+    /*-----------------------------------DESCRIÇÃO-----------------------------------*
+     *                                                                               *
+     *  Função faz a mesma coisa que a anterior, porém é específica para a criação   *
+     *  de um nó do tipo processo.                                                   *
+     *                                                                               *
+     *-------------------------------------------------------------------------------*/
 	MemoryCase *newProcessCase;
 	newProcessCase = createMemoryCase(process, begin, size, next, prev);
 	newProcessCase->holeOrProcess = (void *) createProcess(id,index, nextProcessCase, prevProcessCase);
@@ -881,6 +1351,12 @@ MemoryCase * createProcessCase(processID id, priority index, space begin, number
 
 MemoryCase * createHoleCase(space begin, numberOfSpaces size, MemoryCase *nextHoleCase,
 							MemoryCase *prevHoleCase, MemoryCase *next, MemoryCase *prev){
+	/*-----------------------------------DESCRIÇÃO-----------------------------------*
+     *                                                                               *
+     *  Função faz a mesma coisa que a anterior, porém é específica para a criação   *
+     *  de um nó do tipo buraco.                                                     *
+     *                                                                               *
+     *-------------------------------------------------------------------------------*/
 	MemoryCase *newHoleCase;
 	newHoleCase = createMemoryCase(hole, begin, size, next, prev);
 	newHoleCase->holeOrProcess = (void *) createHole(nextHoleCase, prevHoleCase);
@@ -891,6 +1367,12 @@ MemoryCase * createInitialHoleCase(numberOfSpaces size){
 	MemoryCase * initialHoleCase;
 	initialHoleCase = createHoleCase(0, size, nullMemoryCase(), nullMemoryCase(), 
 											  nullMemoryCase(), nullMemoryCase());
+	/*-----------------------------------DESCRIÇÃO-----------------------------------*
+     *                                                                               *
+     *  Função faz a mesma coisa que a anterior, porém é específica para a criação   *
+     *  de um nó do tipo buraco para a inicialização da memória.                     *
+     *                                                                               *
+     *-------------------------------------------------------------------------------*/
 	initialHoleCase->next = initialHoleCase;
 	initialHoleCase->prev = initialHoleCase;
 	((Hole *)(initialHoleCase->holeOrProcess))->nextHoleCase = initialHoleCase;
@@ -899,16 +1381,36 @@ MemoryCase * createInitialHoleCase(numberOfSpaces size){
 }
 
 MemoryCase * nullMemoryCase(void){
+	/*-----------------------------------DESCRIÇÃO--------------------------------------*
+     *                                                                                  *
+     *  Função que retorna um nó nulo. Utilizada para melhorar a legibilidade do código.*
+     *                                                                                  *
+     *----------------------------------------------------------------------------------*/
 	return NULL;
 }
 
-/*-------------------HOLE FUNCTIONS------------------------*/
+/*--------------------------HOLE FUNCTIONS------------------------*
+ *                                                                *
+ *   É a parte fundamental para a formação de uma MemoryCase do   *
+ *   tipo hole.                                                   *
+ *                                                                *
+ *----------------------------------------------------------------*/
 
 Hole * allocHole(void){
+	/*-----------------------------------DESCRIÇÃO--------------------------------*
+     *                                                                            *
+     *  Função que aloca dinamicamente uma estrutura hole.                        *
+     *                                                                            *
+     *----------------------------------------------------------------------------*/
 	return (Hole *) malloc (sizeof(Hole));
 }
 
 Hole * createHole(MemoryCase *nextHoleCase, MemoryCase *prevHoleCase){
+	/*-----------------------------------DESCRIÇÃO--------------------------------*
+     *                                                                            *
+     *  Função que inicializa uma estrutura hole com seus buracos vizinhos.       *
+     *                                                                            *
+     *----------------------------------------------------------------------------*/
 	Hole * newHole;
 	
 	newHole = allocHole();
@@ -917,15 +1419,30 @@ Hole * createHole(MemoryCase *nextHoleCase, MemoryCase *prevHoleCase){
 	return newHole;
 }
 
-/*-----------------PROCESS FUNCTIONS-----------------------*/
+/*-----------------------PROCESS FUNCTIONS------------------------*
+ *                                                                *
+ *   É a parte fundamental para a formação de uma MemoryCase do   *
+ *   tipo process.                                                *
+ *                                                                *
+ *----------------------------------------------------------------*/
 
 Process * allocProcess(void){
+	/*-----------------------------------DESCRIÇÃO--------------------------------*
+     *                                                                            *
+     *  Função que aloca dinamicamente uma estrutura process.                     *
+     *                                                                            *
+     *----------------------------------------------------------------------------*/
 	return (Process *) malloc (sizeof(Process));
 }
 
 Process * createProcess(processID id, priority index, 
 						MemoryCase *nextProcessCase, 
 						MemoryCase *prevProcessCase){
+	/*-----------------------------------DESCRIÇÃO--------------------------------*
+     *                                                                            *
+     *  Função que inicializa uma estrutura process com os valores dos parâmetros.*
+     *                                                                            *
+     *----------------------------------------------------------------------------*/
 	Process *newProcess;
 
 	newProcess = allocProcess();
@@ -937,16 +1454,45 @@ Process * createProcess(processID id, priority index,
 	return newProcess;
 }
 
-/*----------------------AUXILIAR---------------------------*/
-
 processID getNewProcessID(void){
+	/*-----------------------------------DESCRIÇÃO--------------------------------*
+     *                                                                            *
+     *  Gera um identificador único para um processo criado.                      *
+     *                                                                            *
+     *----------------------------------------------------------------------------*/
 	static processID id = -1;
 	return ++id;
 }
 
-/*--------------------THREADS FUNCTIONS-----------------------*/
+/*-----------------------THREADS FUNCTIONS------------------------*
+ *                                                                *
+ *   Se os algoritmos de inserção são considerados os corações    *
+ *   do programa, as threads podem ser tratadas como suas pernas, *
+ *   pois, na verdade, são elas que vão permitir a dinâmica do    *
+ *   código.                                                      *
+ *                                                                *
+ *----------------------------------------------------------------*/
 
 void * executeProcess(void *vargp){
+	/*-----------------------------------DESCRIÇÃO--------------------------------*
+     *                                                                            *
+     *  Função para a criação de uma thread, recebe uma struct definida no iní-   *
+     *  cio do programa como parâmetro e a partir dela, é possível se executar    *
+     *  com flexiblidade o pequeno algoritmo descrito.                            *
+     *                                                                            *
+     *  Essa função recebe como parâmetro uma struct que contém os dois únicos    *
+     *  parâmetros necessários. O cabeçalho da memória e o endereço do processo   *
+     *  que criou essa thread.                                                    *
+     *                                                                            *
+     *  Para simular a execução de um processo, na verdade, fazemos com que o     *
+     *  processo aguarde um tempo randômico antes de ser finalizado. Esse tempo   *
+     *  está entre 1 e MAX_PROCESS_TIME que é uma definição do sistema.           *
+     *                                                                            *
+     *  Após a espera desse tempo, o processo chama sua própria função de exclu-  *
+     *  são e aguarda até que o acesso a lista seja liberado pela fechadura       *
+     *  mutex_listModify. Então, encerra o processo e libera a fechadura.         *
+     *                                                                            *
+     *----------------------------------------------------------------------------*/
 	execution_arg *exec_arg = (execution_arg *) vargp;	
 	time_t t;
 	srand((unsigned) time(&t));
@@ -960,6 +1506,22 @@ void * executeProcess(void *vargp){
 }
 
 void * randomCreateProcesses(void *vargp){
+	/*-----------------------------------DESCRIÇÃO--------------------------------*
+     *                                                                            *
+     *  A partir de uma série de parâmetros que são perguntados ao usuário, essa  *
+     *  função cria automaticamente um número x de processos (digitados pelo usu- *
+     *  ário).                                                                    *
+     *  Dado um intervalo de prioridades e o máximo valor de tamanho, gera-se um  *
+     *  processo com valores randômicos obedecendo esses intervalos.              *
+     *  Já que temos três funções de criação de processos, há a necessidade de se *
+     *  ter um ponteiro para receber qual função foi selecionada pelo usuário.    *
+     *  Um tempo randômico que obedece um intervalo fornecido é forçado entre a   *
+     *  criação de um e outro processo.                                           *
+     *  A adição de um processo representa uma alteração na lista encadeada,      *
+     *  para evitar conflitos e deadlocks, a fechadura para acesso da lista é     *
+     *  utilizada.                                                                *
+     *                                                                            *
+     *----------------------------------------------------------------------------*/
 	rcp_arg *args = (rcp_arg *) vargp;
 	time_t t;
 	MemoryCase *(*addProcessFunction)() = args->addProcessFunction;
@@ -975,6 +1537,11 @@ void * randomCreateProcesses(void *vargp){
 }
 
 void * plotMemoryStatus(void *vargp){
+    /*-----------------------------------DESCRIÇÃO--------------------------------*
+     *                                                                            *
+     *  Função da thread de atualização do frame.                                 *
+     *                                                                            *
+     *----------------------------------------------------------------------------*/
 	fu_arg *args = (fu_arg *) vargp;
 	
 	while(*(args->frame_update)){
