@@ -523,8 +523,6 @@ void printMemory(Memory *memory, ui_param *ui_params){
 	XFlush(ui_params->dis);
 
 	printMemoryTerminal(memory);
-	//free(green_rects);
-	//free(black_rects);
 
 }
 
@@ -790,7 +788,7 @@ MemoryCase *reallocAndInsert_best(numberOfSpaces size, priority index, MemoryCas
 				runner->begin = (currentNextSize - currentSizeAux) + runner->begin >= memory->available + memory->inUse ?
 					 	 runner->begin + (currentNextSize - currentSizeAux) - memory->available - memory->inUse :
 						 runner->begin + (currentNextSize - currentSizeAux);
-				if(runner->size == 0)
+				if(runner->size <= 0)
 						removeHoleCase(runner, memory);
 				break;
 			}
@@ -842,7 +840,7 @@ MemoryCase *reallocAndInsert_best(numberOfSpaces size, priority index, MemoryCas
 			}
 			else{
 				runner->size -= (currentPrevSize - currentSizeAux);
-				if(runner->size == 0)
+				if(runner->size <= 0)
 						removeHoleCase(runner, memory);
 				break;
 			}
@@ -1094,7 +1092,7 @@ MemoryCase *reallocAndInsert_worst(numberOfSpaces size, priority index, MemoryCa
 				runner->begin += (currentNextSize - currentSizeAux) + runner->begin >= memory->available + memory->inUse ?
 					 	 runner->begin + (currentNextSize - currentSizeAux) - memory->available - memory->inUse :
 						 runner->begin + (currentNextSize - currentSizeAux);
-				if(runner->size == 0)
+				if(runner->size <= 0)
 						removeHoleCase(runner, memory);
 				break;
 			}
@@ -1118,7 +1116,7 @@ MemoryCase *reallocAndInsert_worst(numberOfSpaces size, priority index, MemoryCa
 			}
 			else{
 				runner->size -= (currentPrevSize - currentSizeAux);
-				if(runner->size == 0)
+				if(runner->size <= 0)
 						removeHoleCase(runner, memory);
 				break;
 			}
