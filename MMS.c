@@ -5,6 +5,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <X11/Xlib.h>
 
 #define DESTRUCT_WITHOUT_MERGE  0
 #define DESTRUCT_MERGE_NEXT     1
@@ -15,6 +16,8 @@
 #define MAX_PROCESS_GENERATE_SLEEP 70
 #define SCREEN_UPDATE_FREQUENCY 60
 #define MAX_PROCESS_TIME 7
+#define MEMORY_UI_X 600
+#define MEMORY_UI_Y 180
 
 /*--------------------------TYPEDEFS----------------------------*
  *                                                              *
@@ -119,6 +122,13 @@ struct RandomCreateProcessesArg{
 struct FrameUpdateArg{
 	bool * frame_update;
 	struct Memory *memory;
+	struct UIParameters *ui_params;
+};
+
+struct UIParameters{
+	Display *dis;
+	Window win;
+	float byte_size;
 };
 
 typedef struct MemoryCase MemoryCase;
@@ -128,6 +138,7 @@ typedef struct Memory Memory;
 typedef struct ExecProcessArg execution_arg;
 typedef struct RandomCreateProcessesArg rcp_arg;
 typedef struct FrameUpdateArg fu_arg;
+typedef struct UIParameters ui_param;
 
 /*-----------------------GLOBAL VARIABLES-----------------------*
  *                                                              *
@@ -191,7 +202,7 @@ MemoryCase * findPrevPriorityListProcessCase(priority index, MemoryCase *firstPr
 void removeHoleCase(MemoryCase *toRemove, Memory *memory);
 
 /*6. PRINT FUNCTIONS */
-void printMemory(Memory *memory);
+void printMemory(Memory *memory, ui_param *ui_params);
 void printProcessList(MemoryCase *firstProcessCase);
 void printHoleList(MemoryCase *firstHoleCase);
 
@@ -215,6 +226,9 @@ void ask_rcp_args(rcp_arg *args);
 void * executeProcess(void *vargp);
 void * randomCreateProcesses(void *vargp);
 void * plotMemoryStatus(void *vargp);
+
+/*10 interface functions*/
+ui_param * createUI();
 
 
 /*-----------------------------MAIN-----------------------------*
@@ -251,13 +265,17 @@ int main(void){
 	pthread_t processesCreation, frameUpdate;
 	bool frame_update = true;
 	fu_arg frame_update_args;
+	int memory_size;
 
-	memory = createMemory(getSize());
+	memory_size = getSize();
+	memory = createMemory(memory_size);
 	args.memory = memory;
 	ask_rcp_args(&args);
 
 	frame_update_args.memory = memory;
 	frame_update_args.frame_update = &frame_update;
+	frame_update_args.ui_params = createUI();
+	frame_update_args.ui_params -> byte_size = ((float)MEMORY_UI_X/(float)memory_size);;
 	
 	pthread_mutex_init(&mutex_listModify, NULL);
 	pthread_create(&processesCreation, NULL, randomCreateProcesses, &args);
@@ -356,30 +374,179 @@ void ask_rcp_args(rcp_arg *args){
  *                                                              *
  *--------------------------------------------------------------*/
 
-void printMemory(Memory *memory){
+void printMemory(Memory *memory, ui_param *ui_params){
 	MemoryCase *firstPrintedCase = memory->begin;
 	MemoryCase *firstCase = memory->begin;
-	
-	/*clean screen*/
-	printf("\e[H\e[2J");
-	printf("\n--------------MEMORY STATUS-------------");
-	printf("\nAvailable: %lu\nUsing: %lu\n", memory->available, memory->inUse);
+
+	/*dados da janela*/
+	Display *dis = ui_params -> dis;
+	Window win = ui_params -> win;
+
+	/*green gc*/
+	XColor green_col;
+	Colormap colormap;
+	char green[] = "#00FF00";
+	colormap = DefaultColormap(dis, 0);
+	GC green_gc = XCreateGC(dis, win, 0, 0);
+	XParseColor(dis, colormap, green, &green_col);
+	XAllocColor(dis, colormap, &green_col);
+	XSetForeground(dis, green_gc, green_col.pixel);
+
+	/*black gc*/
+	XColor black_col;
+	Colormap colormap_black;
+	char black[] = "#00000f";
+	colormap_black = DefaultColormap(dis, 0);
+	GC black_gc = XCreateGC(dis, win, 0, 0);
+	XParseColor(dis, colormap_black, black, &black_col);
+	XAllocColor(dis, colormap_black, &black_col);
+	XSetForeground(dis, black_gc, black_col.pixel);
+
+	/*red gc*/
+	XColor red_col;
+	Colormap colormap_red;
+	char red[] = "#FFFFFF";
+	colormap_red = DefaultColormap(dis, 0);
+	GC red_gc = XCreateGC(dis, win, 0, 0);
+	XParseColor(dis, colormap_red, red, &red_col);
+	XAllocColor(dis, colormap_red, &red_col);
+	XSetForeground(dis, red_gc, red_col.pixel);
+
+	XDrawRectangle(dis, win, red_gc, 150, 10, 604, 180);
+	XFlush(dis);
+	//limpa a area de string
+	XClearArea(dis, win, 0,0, 140, 180, 0);
+
+	//cria as strings
+	char available[15], used[15];
+	long unsigned av = memory->available;
+	long unsigned us = memory->inUse;
+	sprintf(available, "%lu",av);
+	sprintf(used, "%lu",us);
+
+	//desenha elas na tela.
+	XDrawString(dis, win, green_gc, 10, 20, "Avaible: ", 8);
+	XDrawString(dis, win, green_gc, 70, 20, available, 8);
+	XDrawString(dis, win, green_gc, 10, 35, "Using: ", 8);
+	XDrawString(dis, win, green_gc, 70, 35, used, 8);
+	XFlush(dis);
+
+	//array de retangulos para serem inseridos
+	XRectangle green_rects[memory->total];
+	XRectangle black_rects[memory->total];
+	int green_rect_count = 0;
+	int black_rect_count = 0;
 
 	do{
 		if(firstCase->type == hole){
-			printf("\n----> HOLE\n");
-			printf("Size: %lu\n", firstCase->size);
-			printf("Begin: %lu\n", firstCase->begin);
+			float begin = ((firstCase->begin)*(ui_params->byte_size));
+			float size = ((firstCase->size)*(ui_params->byte_size));
+			if((MEMORY_UI_X - begin) < size){
+
+				int end = MEMORY_UI_X - begin;
+				
+				XRectangle r;
+				r.x = begin + 152;
+				r.y = 12;
+				r.width = end;
+				r.height = 176;
+
+				green_rects[green_rect_count] = r;
+				green_rect_count++;
+
+				int end_2 = MEMORY_UI_X - (size + begin);
+
+				XRectangle r2;
+				r2.x = 152;
+				r2.y = 12;
+				r2.width = end_2;
+				r2.height = 176;
+
+				green_rects[green_rect_count] = r2;
+				green_rect_count++;
+
+			} else {
+
+				XRectangle r;
+				r.x = begin + 152;
+				r.y = 12;
+				r.width = size;
+				r.height = 176;
+
+				green_rects[green_rect_count] = r;
+				green_rect_count++;
+
+			}
 		}
 		else{
-			printf("\n----> PROCESS\n");
-			printf("ID: %lu\n", ((Process *)(firstCase->holeOrProcess))->id);			
-			printf("Priority: %d\n", ((Process *)(firstCase->holeOrProcess))->index);
-			printf("Size: %lu\n", firstCase->size);
-			printf("Begin: %lu\n", firstCase->begin);
+			float begin = ((firstCase->begin)*(ui_params->byte_size));
+			float size = ((firstCase->size)*(ui_params->byte_size));
+			if((MEMORY_UI_X - begin) < size){
+
+				int end = MEMORY_UI_X - begin;
+				
+				XRectangle r;
+				r.x = begin + 152;
+				r.y = 12;
+				r.width = end;
+				r.height = 176;
+
+				black_rects[black_rect_count] = r;
+				black_rect_count++;
+				
+				int end_2 = size - begin;
+
+				XRectangle r2;
+				r2.x = 152;
+				r2.y = 12;
+				r2.width = end_2;
+				r2.height = 176;
+
+				black_rects[black_rect_count] = r2;
+				black_rect_count++;
+
+			} else {
+
+				XRectangle r;
+				r.x = begin + 152;
+				r.y = 12;
+				r.width = size;
+				r.height = 176;
+
+				black_rects[black_rect_count] = r;
+				black_rect_count++;
+
+			}
 		}
+
+		//insere os retangulos
+		XFillRectangles(dis, win, black_gc, green_rects, green_rect_count);
+		XFillRectangles(dis, win, green_gc, black_rects, black_rect_count);
+
+		//print da memoria no console.
+		printf("\e[H\e[2J");
+		printf("\n--------------MEMORY STATUS-------------");
+		printf("\nAvailable: %lu\nUsing: %lu\n", memory->available, memory->inUse);
+
 		firstCase = firstCase->next;
 	}while(firstCase != firstPrintedCase);
+
+	
+}
+
+/*criar interface*/
+
+ui_param * createUI(fu_arg *frame_update_args){
+	Display *dis;
+	Window win;
+	dis = XOpenDisplay(NULL);
+	win = XCreateSimpleWindow(dis, RootWindow(dis, 0), 1, 1, 800, 200, 0, BlackPixel (dis, 0), BlackPixel(dis, 0));
+	XMapWindow(dis, win);
+	XFlush(dis);
+	ui_param *ui = (ui_param*)malloc(sizeof(ui_param));
+	ui->win = win;
+	ui->dis = dis;
+	return ui;
 }
 
 void printProcessList(MemoryCase *firstProcessCase){
@@ -1547,7 +1714,7 @@ void * plotMemoryStatus(void *vargp){
 	while(*(args->frame_update)){
 		pthread_mutex_lock(&mutex_listModify);
 		printf("\e[H\e[2J");
-		printMemory(args->memory);
+		printMemory(args->memory, args->ui_params);
 		pthread_mutex_unlock(&mutex_listModify);
 		sleep(1);
 	}
