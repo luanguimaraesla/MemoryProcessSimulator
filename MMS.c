@@ -128,7 +128,7 @@ struct FrameUpdateArg{
 struct UIParameters{
 	Display *dis;
 	Window win;
-	float byte_size;
+	double byte_size;
 };
 
 typedef struct MemoryCase MemoryCase;
@@ -276,7 +276,7 @@ int main(void){
 	frame_update_args.memory = memory;
 	frame_update_args.frame_update = &frame_update;
 	frame_update_args.ui_params = createUI();
-	frame_update_args.ui_params -> byte_size = ((float)MEMORY_UI_X/(float)memory_size);;
+	frame_update_args.ui_params -> byte_size = ((double)MEMORY_UI_X/(double)memory_size);;
 	
 	pthread_mutex_init(&mutex_listModify, NULL);
 	pthread_create(&processesCreation, NULL, randomCreateProcesses, &args);
@@ -384,12 +384,11 @@ void printMemory(Memory *memory, ui_param *ui_params){
 	static Colormap colormap_black, colormap, colormap_red;
 	static GC black_gc, green_gc, red_gc;
 	static bool setColor = true;
-	static float begin, size;
-	static int end, end_2;
+	static double begin, size;
+	static double end, end_2;
 	static XRectangle r, r2;
 	XRectangle *green_rects = (XRectangle *) malloc (sizeof(XRectangle) * memory->running);
 	XRectangle *black_rects = (XRectangle *) malloc (sizeof(XRectangle) * memory->running);
-
 	if(setColor){
 		/*green gc*/
 		colormap = DefaultColormap(ui_params->dis, 0);
@@ -427,7 +426,8 @@ void printMemory(Memory *memory, ui_param *ui_params){
 			begin = ((firstCase->begin)*(ui_params->byte_size));
 			size = ((firstCase->size)*(ui_params->byte_size));
 			if((MEMORY_UI_X - begin) < size){
-				end = MEMORY_UI_X - begin;
+
+				end = (double)MEMORY_UI_X - begin;
 				
 				r.x = begin + 152;
 				r.y = 12;
@@ -437,7 +437,7 @@ void printMemory(Memory *memory, ui_param *ui_params){
 				green_rects[green_rect_count] = r;
 				green_rect_count++;
 
-				end_2 = MEMORY_UI_X - (size + begin);
+				end_2 = (double)((size + begin)- (double)MEMORY_UI_X);
 
 				r2.x = 152;
 				r2.y = 12;
@@ -462,7 +462,8 @@ void printMemory(Memory *memory, ui_param *ui_params){
 			begin = ((firstCase->begin)*(ui_params->byte_size));
 			size = ((firstCase->size)*(ui_params->byte_size));
 			if((MEMORY_UI_X - begin) < size){
-				end = MEMORY_UI_X - begin;
+
+				end = (double)MEMORY_UI_X - begin;
 		
 				r.x = begin + 152;
 				r.y = 12;
@@ -472,7 +473,8 @@ void printMemory(Memory *memory, ui_param *ui_params){
 				black_rects[black_rect_count] = r;
 				black_rect_count++;
 				
-				end_2 = size - begin;
+				end_2 = (double)((size + begin)- (double)MEMORY_UI_X);
+
 				r2.x = 152;
 				r2.y = 12;
 				r2.width = end_2;
@@ -494,12 +496,12 @@ void printMemory(Memory *memory, ui_param *ui_params){
 		}
 
 		/*insere os retangulos*/
-		XFillRectangles(ui_params->dis, ui_params->win, black_gc, green_rects, green_rect_count);
-		XFillRectangles(ui_params->dis, ui_params->win, green_gc, black_rects, black_rect_count);
 		
 		firstCase = firstCase->next;
 	}while(firstCase != memory->begin);
 
+	XFillRectangles(ui_params->dis, ui_params->win, black_gc, green_rects, green_rect_count);
+	XFillRectangles(ui_params->dis, ui_params->win, green_gc, black_rects, black_rect_count);
 	/*cria as strings*/
 	sprintf(available, "%-14lu", memory->available);
 	sprintf(used, "%-14lu", memory->inUse);
@@ -521,8 +523,8 @@ void printMemory(Memory *memory, ui_param *ui_params){
 	XFlush(ui_params->dis);
 
 	printMemoryTerminal(memory);
-	free(green_rects);
-	free(black_rects);
+	//free(green_rects);
+	//free(black_rects);
 
 }
 
