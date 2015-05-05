@@ -205,6 +205,7 @@ void removeHoleCase(MemoryCase *toRemove, Memory *memory);
 void printMemory(Memory *memory, ui_param *ui_params);
 void printProcessList(MemoryCase *firstProcessCase);
 void printHoleList(MemoryCase *firstHoleCase);
+void printMemoryTerminal(Memory *memory);
 
 /*7. ENDP PROCESS FUNCTIONS */
 MemoryCase * endProcess(MemoryCase *processCase, Memory *memory);
@@ -227,7 +228,7 @@ void * executeProcess(void *vargp);
 void * randomCreateProcesses(void *vargp);
 void * plotMemoryStatus(void *vargp);
 
-/*10 interface functions*/
+/*10. INTERFACE FUNCTIONS*/
 ui_param * createUI();
 
 
@@ -519,6 +520,7 @@ void printMemory(Memory *memory, ui_param *ui_params){
 	XDrawString(ui_params->dis, ui_params->win, green_gc, 70, 75, total, 8);
 	XFlush(ui_params->dis);
 
+	printMemoryTerminal(memory);
 	free(green_rects);
 	free(black_rects);
 
@@ -539,6 +541,33 @@ ui_param * createUI(fu_arg *frame_update_args){
 	ui->dis = dis;
 	return ui;
 }
+
+void printMemoryTerminal(Memory *memory){
+	MemoryCase *firstPrintedCase = memory->begin;
+	MemoryCase *firstCase = memory->begin;
+	
+	/*clean screen*/
+	printf("\e[H\e[2J");
+	printf("\n--------------MEMORY STATUS-------------");
+	printf("\nAvailable: %lu\nUsing: %lu\n", memory->available, memory->inUse);
+
+	do{
+		if(firstCase->type == hole){
+			printf("\n----> HOLE\n");
+			printf("Size: %lu\n", firstCase->size);
+			printf("Begin: %lu\n", firstCase->begin);
+		}
+		else{
+			printf("\n----> PROCESS\n");
+			printf("ID: %lu\n", ((Process *)(firstCase->holeOrProcess))->id);			
+			printf("Priority: %d\n", ((Process *)(firstCase->holeOrProcess))->index);
+			printf("Size: %lu\n", firstCase->size);
+			printf("Begin: %lu\n", firstCase->begin);
+		}
+		firstCase = firstCase->next;
+	}while(firstCase != firstPrintedCase);
+}
+
 
 void printProcessList(MemoryCase *firstProcessCase){
 	if(firstProcessCase){	
