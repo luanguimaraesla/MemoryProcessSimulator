@@ -1,4 +1,4 @@
-# Filtros em Imagens PGM
+# Simulador de Memória com Listas Encadeadas
 
 Esse programa foi desenvolvido com a finalidade de simular, utilizando listas encadeadas, o funcionamento de uma memória em ambiente linux/gcc.
 
