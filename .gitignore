@@ -1,2 +1,4 @@
-simulator
+./bin/simulator
 *~
+.gitignore
+./obj/*.o
