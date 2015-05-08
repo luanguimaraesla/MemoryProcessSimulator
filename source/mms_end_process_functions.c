@@ -1,6 +1,7 @@
 #include "mms_end_process_functions.h"
 #include "mms_creation_functions.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 /*-----------------------REMOVE FUNCTIONS-----------------------*
  *                                                              *
@@ -186,6 +187,11 @@ MemoryCase * mergeHoleCases(MemoryCase *holeCaseA, MemoryCase *holeCaseB, Memory
 
 	holeCaseB->begin = holeCaseA->begin;
 	holeCaseB->size += holeCaseA->size;
+
+	if(holeCaseB->size > memory->available + memory->inUse){
+		printf("\n\nERRO !!\n\n");
+		exit(1);
+	}
 
 	((Hole *)(holeCaseB->holeOrProcess))->prevHoleCase = 
 	((Hole *)(holeCaseA->holeOrProcess))->prevHoleCase;

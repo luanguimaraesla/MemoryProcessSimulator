@@ -2,8 +2,10 @@
 #include "mms_first_fit_insertion.h"
 #include "mms_creation_functions.h"
 #include "mms_thread_args.h"
+#include "mms_terminal_log_functions.h"
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 /*---------------------WORST FIT INSERTION----------------------*
  *                                                              *
@@ -58,30 +60,45 @@ MemoryCase *reallocAndInsert_worst(numberOfSpaces size, priority index, MemoryCa
 	while(insertBegin->size + currentPrevSize + currentNextSize < size){
 		if(abs((size - (currentPrevSize + currentNextSize)) - currentPrevHoleCase->size) >
 		   abs((size - (currentPrevSize + currentNextSize)) - currentNextHoleCase->size)){
-			if(currentPrevHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize > size)
-				currentPrevSize += (size - currentNextSize - currentPrevSize - insertBegin->size);
-			else
-				currentPrevSize += currentNextHoleCase->size;
-			currentPrevHoleCase = ((Hole *)(currentPrevHoleCase->holeOrProcess))->prevHoleCase;
+			if(currentPrevHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize >= size){
+				currentPrevSize = (size - currentNextSize - insertBegin->size);
+				currentPrevHoleCase = ((Hole *)(currentPrevHoleCase->holeOrProcess))->prevHoleCase;
+				break;
+			}
+			else{
+				currentPrevSize += currentPrevHoleCase->size;
+				currentPrevHoleCase = ((Hole *)(currentPrevHoleCase->holeOrProcess))->prevHoleCase;
+			}
 		}
 		else{
-			if(currentNextHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize > size)
-				currentNextSize += (size - currentNextSize - currentPrevSize - insertBegin->size);
-			else
+			if(currentNextHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize >= size){
+				currentNextSize = size - currentPrevSize - insertBegin->size;
+				currentNextHoleCase = ((Hole *)(currentNextHoleCase->holeOrProcess))->nextHoleCase;
+				break;
+			}
+			else{
 				currentNextSize += currentNextHoleCase->size;
-			currentNextHoleCase = ((Hole *)(currentNextHoleCase->holeOrProcess))->nextHoleCase;
+				currentNextHoleCase = ((Hole *)(currentNextHoleCase->holeOrProcess))->nextHoleCase;
+			}		
 		}
 	}
+	
+	printMemoryTerminal(memory);
+	printf("\n\nHOLE LIST --------------------------------------------------------------\n");
+	printHoleList(memory->firstHoleCase);
+	printf("\nTentando adicionar: %lu, na casa atual temos: %lu, na casa anterior: %lu, na casa posterior: %lu\n\n", size, insertBegin->size, currentPrevSize, currentNextSize);
+	
 
+	currentSizeAux = 0;
 	runner = insertBegin->next;
 	while(runner != currentNextHoleCase && currentNextSize){
 		if(runner->type == process){
-			runner->begin = (currentNextSize - currentSizeAux) + runner->begin >= memory->available + memory->inUse ?
+			runner->begin = ((currentNextSize - currentSizeAux) + runner->begin) >= (memory->available + memory->inUse) ?
 					 runner->begin + (currentNextSize - currentSizeAux) - memory->available - memory->inUse :
 					 runner->begin + (currentNextSize - currentSizeAux);
 		}		
 		else{
-			if(currentNextSize > currentSizeAux + runner->size){
+			if(currentNextSize >= currentSizeAux + runner->size){
 				currentSizeAux += runner->size;
 				runner = runner->next;
 				removeHoleCase(runner->prev, memory);
@@ -89,7 +106,7 @@ MemoryCase *reallocAndInsert_worst(numberOfSpaces size, priority index, MemoryCa
 			}
 			else{
 				runner->size -= currentNextSize - currentSizeAux;
-				runner->begin += (currentNextSize - currentSizeAux) + runner->begin >= memory->available + memory->inUse ?
+				runner->begin = ((currentNextSize - currentSizeAux) + runner->begin) >= (memory->available + memory->inUse) ?
 					 	 runner->begin + (currentNextSize - currentSizeAux) - memory->available - memory->inUse :
 						 runner->begin + (currentNextSize - currentSizeAux);
 				if(runner->size <= 0)
@@ -103,12 +120,17 @@ MemoryCase *reallocAndInsert_worst(numberOfSpaces size, priority index, MemoryCa
 	currentSizeAux = 0;
 	runner = insertBegin->prev;
 	while(runner != currentPrevHoleCase && currentPrevSize){
-		if(runner->type == process)
-			runner->begin = (signed long)(runner->begin) - (signed long)(currentPrevSize - currentSizeAux) < 0 ?
+		if(runner->type == process){
+			runner->begin = ((signed long)(runner->begin) - (signed long)(currentPrevSize - currentSizeAux) < 0) ?
 					memory->available + memory->inUse - abs((signed long)(runner->begin) - (signed long)(currentPrevSize - currentSizeAux)) :
-					runner->begin - (currentPrevSize - currentSizeAux);		
+					runner->begin - (currentPrevSize - currentSizeAux);
+			if(runner->begin > 2000){
+				printf("\n\nERRO FATAL 1!\n\n");
+				exit(1);
+			}
+		}		
 		else{
-			if(currentPrevSize > currentSizeAux + runner->size){
+			if(currentPrevSize >= currentSizeAux + runner->size){
 				currentSizeAux += runner->size;
 				runner = runner->prev;
 				removeHoleCase(runner->next, memory);
@@ -129,8 +151,25 @@ MemoryCase *reallocAndInsert_worst(numberOfSpaces size, priority index, MemoryCa
 						insertBegin->prev->size + insertBegin->prev->begin - memory->inUse - memory->available :
 						insertBegin->prev->size + insertBegin->prev->begin;
 	
+	allCaseSize(memory, size);
 	memory->available -= size;
 	memory->inUse+=size;
 
 	return overwriteHoleCase(index, insertBegin, memory);
+}
+
+void allCaseSize(Memory *memory, numberOfSpaces number){
+	MemoryCase *runner = memory->begin;
+	numberOfSpaces total = 0;	
+	do{	
+		total += runner->size;
+		runner = runner->next;
+	}while(runner != memory->begin);
+
+	if(total > memory->available + memory->inUse){
+		printf("\n\n\nERRO DE TAMANHO! Disponível: %lu Inseriu: %lu\n",memory->available, number);
+		printMemoryTerminal(memory);
+		exit(1);
+	}
+	else printf("\n\n\nTAMANHO OK!\n\n\n");
 }
