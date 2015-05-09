@@ -86,20 +86,28 @@ MemoryCase *reallocAndInsert_best(numberOfSpaces size, priority index, MemoryCas
 	while(insertBegin->size + currentPrevSize + currentNextSize < size){
 		if(abs((size - (currentPrevSize + currentNextSize)) - currentPrevHoleCase->size) <
 		   abs((size - (currentPrevSize + currentNextSize)) - currentNextHoleCase->size)){
-			if(currentPrevHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize > size)
-				currentPrevSize += (size - currentNextSize - currentPrevSize - insertBegin->size);
-			else
-				currentPrevSize += currentNextHoleCase->size;
-			currentPrevHoleCase = ((Hole *)(currentPrevHoleCase->holeOrProcess))->prevHoleCase;
+			if(currentPrevHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize >= size){
+				currentPrevSize = (size - currentNextSize - insertBegin->size);
+				currentPrevHoleCase = ((Hole *)(currentPrevHoleCase->holeOrProcess))->prevHoleCase;
+				break;
+			}
+			else{
+				currentPrevSize += currentPrevHoleCase->size;
+				currentPrevHoleCase = ((Hole *)(currentPrevHoleCase->holeOrProcess))->prevHoleCase;
+			}
 		}
 		else{
-			if(currentNextHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize > size)
-				currentNextSize += (size - currentNextSize - currentPrevSize - insertBegin->size);
-			else
+			if(currentNextHoleCase->size + currentNextSize + insertBegin->size + currentPrevSize >= size){
+				currentNextSize = size - currentPrevSize - insertBegin->size;
+				currentNextHoleCase = ((Hole *)(currentNextHoleCase->holeOrProcess))->nextHoleCase;
+				break;
+			}
+			else{
 				currentNextSize += currentNextHoleCase->size;
-			currentNextHoleCase = ((Hole *)(currentNextHoleCase->holeOrProcess))->nextHoleCase;
+				currentNextHoleCase = ((Hole *)(currentNextHoleCase->holeOrProcess))->nextHoleCase;
+			}		
 		}
-	}
+	}	
 
 	/*---------------------------DESCRIÇÃO DO ALGORÍTMO---------------------------*
      *                                                                            *
@@ -132,9 +140,9 @@ MemoryCase *reallocAndInsert_best(numberOfSpaces size, priority index, MemoryCas
 	runner = insertBegin->next;
 	while(runner != currentNextHoleCase && currentNextSize){
 		if(runner->type == process){
-			runner->begin = (currentNextSize - currentSizeAux) + runner->begin >= memory->available + memory->inUse ?
-					 	 runner->begin + (currentNextSize - currentSizeAux) - memory->available - memory->inUse :
-						 runner->begin + (currentNextSize - currentSizeAux);
+			runner->begin = ((currentNextSize - currentSizeAux) + runner->begin) >= (memory->available + memory->inUse) ?
+					 runner->begin + (currentNextSize - currentSizeAux) - memory->available - memory->inUse :
+					 runner->begin + (currentNextSize - currentSizeAux);
 		}		
 		else{
 			if(currentNextSize > currentSizeAux + runner->size){
@@ -145,11 +153,11 @@ MemoryCase *reallocAndInsert_best(numberOfSpaces size, priority index, MemoryCas
 			}
 			else{
 				runner->size -= currentNextSize - currentSizeAux;
-				runner->begin = (currentNextSize - currentSizeAux) + runner->begin >= memory->available + memory->inUse ?
+				runner->begin = ((currentNextSize - currentSizeAux) + runner->begin) >= (memory->available + memory->inUse) ?
 					 	 runner->begin + (currentNextSize - currentSizeAux) - memory->available - memory->inUse :
 						 runner->begin + (currentNextSize - currentSizeAux);
 				if(runner->size <= 0)
-						removeHoleCase(runner, memory);
+					removeHoleCase(runner, memory);
 				break;
 			}
 		}
@@ -187,10 +195,11 @@ MemoryCase *reallocAndInsert_best(numberOfSpaces size, priority index, MemoryCas
 	currentSizeAux = 0;
 	runner = insertBegin->prev;
 	while(runner != currentPrevHoleCase && currentPrevSize){
-		if(runner->type == process)
-			runner->begin = (signed long)(runner->begin) - (signed long)(currentPrevSize - currentSizeAux) < 0 ?
+		if(runner->type == process){
+			runner->begin = ((signed long)(runner->begin) - (signed long)(currentPrevSize - currentSizeAux) < 0) ?
 					memory->available + memory->inUse - abs((signed long)(runner->begin) - (signed long)(currentPrevSize - currentSizeAux)) :
 					runner->begin - (currentPrevSize - currentSizeAux);
+		}		
 		else{
 			if(currentPrevSize > currentSizeAux + runner->size){
 				currentSizeAux += runner->size;
@@ -201,7 +210,8 @@ MemoryCase *reallocAndInsert_best(numberOfSpaces size, priority index, MemoryCas
 			else{
 				runner->size -= (currentPrevSize - currentSizeAux);
 				if(runner->size <= 0)
-						removeHoleCase(runner, memory);
+					removeHoleCase(runner, memory);
+						
 				break;
 			}
 		}

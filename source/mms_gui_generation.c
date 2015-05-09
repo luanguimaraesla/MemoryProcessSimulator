@@ -150,7 +150,7 @@ void printMemory(Memory *memory, ui_param *ui_params){
 	XDrawString(ui_params->dis, ui_params->win, green_gc, 70, 75, total, 8);
 	XFlush(ui_params->dis);
 
-	/*printMemoryTerminal(memory);*/
+	printMemoryTerminal(memory);
 
 }
 
