@@ -7,6 +7,9 @@ MemoryCase * allocMemoryCase(void);
 Hole * allocHole(void);
 Process * allocProcess(void);
 Memory * createMemory(numberOfSpaces size);
+Memory *createAndSetMemory(numberOfSpaces available, numberOfSpaces inUse, numberOfProcesses running,
+			   numberOfProcesses total, MemoryCase *begin, MemoryCase *firstProcessCase,
+			   MemoryCase *firstHoleCase);
 MemoryCase * createMemoryCase(memoryCaseType type, space begin, numberOfSpaces size,MemoryCase *next, MemoryCase *prev);
 MemoryCase * createHoleCase(space begin, numberOfSpaces size, MemoryCase *nextHoleCase,
 							MemoryCase *prevHoleCase, MemoryCase *next, MemoryCase *prev);

@@ -163,7 +163,7 @@ void ask_rcp_args(rcp_arg *args){
 	scanf("%u", &(args->maxPriorityIndex));
 
 	printf("Enter the longest interval between creation processes: ");
-	scanf("%u", &(args->maxProcessGenerateSleep));
+	scanf("%lu", &(args->maxProcessGenerateSleep));
 
 }
 

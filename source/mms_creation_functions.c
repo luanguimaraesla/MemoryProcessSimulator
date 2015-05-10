@@ -11,6 +11,24 @@ Memory * allocMemory(void){
 	return (Memory *) malloc (sizeof(Memory));
 }
 
+
+Memory *createAndSetMemory(numberOfSpaces available, numberOfSpaces inUse, numberOfProcesses running,
+			   numberOfProcesses total, MemoryCase *begin, MemoryCase *firstProcessCase,
+			   MemoryCase *firstHoleCase){
+	Memory *memory;
+
+	memory = allocMemory();
+	memory->available = available;
+	memory->inUse = inUse;
+	memory->running = running;
+	memory->total = total;
+	memory->begin = begin;
+	memory->firstProcessCase = firstProcessCase;
+	memory->firstHoleCase = firstHoleCase;
+	
+	return memory;
+}
+
 Memory * createMemory(numberOfSpaces size){
 	/*------------------------------DESCRIÇÃO----------------------------*
      *                                                                   *
@@ -61,6 +79,7 @@ MemoryCase * allocMemoryCase(void){
      *-------------------------------------------------------------------------------*/
 	return (MemoryCase *) malloc (sizeof(MemoryCase));
 }
+
 
 MemoryCase * createMemoryCase(memoryCaseType type, space begin, numberOfSpaces size,
 							  MemoryCase *next, MemoryCase *prev){

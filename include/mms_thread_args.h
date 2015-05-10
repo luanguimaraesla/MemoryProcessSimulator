@@ -13,7 +13,7 @@ struct RandomCreateProcessesArg{
 	unsigned int numberOfProcesses;
 	numberOfSpaces maxProcessSize;
 	priority maxPriorityIndex;
-	unsigned int maxProcessGenerateSleep;
+	_program_time maxProcessGenerateSleep;
 	struct Memory *memory;
 };
 

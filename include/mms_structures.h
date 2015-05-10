@@ -14,6 +14,7 @@
  *                                                              *
  *--------------------------------------------------------------*/
 
+typedef unsigned long _program_time;
 typedef unsigned int priority;
 typedef unsigned long space;
 typedef unsigned long numberOfSpaces;
