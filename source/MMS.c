@@ -18,7 +18,9 @@
 #include "mms_save_pkg.h"
 
 pthread_mutex_t mutex_listModify;
+pthread_mutex_t mutex_play;
 pthread_cond_t cond_play;
+bool play = true;
 
 void printInsertionModeSelectionMenu(void);
 insertionMode getInsertionMode(void);
@@ -33,6 +35,8 @@ MemoryCase * addProcessBestFit(numberOfSpaces size, priority index, Memory *memo
 void * executeProcess(void *vargp);
 void * randomCreateProcesses(void *vargp);
 void * plotMemoryStatus(void *vargp);
+void pauseSimulation(void);
+void runSimulation(void);
 
 /*-----------------------------MAIN-----------------------------*
  *                                                              *
@@ -91,8 +95,16 @@ int main(void){
 	frame_update_args.ui_params -> byte_size = ((double)MEMORY_UI_X/(double)memory_size);;
 	
 	pthread_mutex_init(&mutex_listModify, NULL);
+	pthread_mutex_init(&mutex_play, NULL);
+	pthread_cond_init(&cond_play, NULL);
+
 	pthread_create(&processesCreation, NULL, randomCreateProcesses, &args);
 	pthread_create(&frameUpdate, NULL, plotMemoryStatus, &frame_update_args);
+
+	sleep(20);
+	pauseSimulation();
+	sleep(20);
+	runSimulation();
 
 	pthread_join(processesCreation, NULL);
 
@@ -101,6 +113,8 @@ int main(void){
 	frame_update = false;
 	pthread_join(frameUpdate, NULL);
 
+	pthread_cond_destroy(&cond_play);
+	pthread_mutex_destroy(&mutex_play);
 	pthread_mutex_destroy(&mutex_listModify);
 	fclose(archive);
 	pthread_exit((void *)NULL);
@@ -385,6 +399,12 @@ void * randomCreateProcesses(void *vargp){
 	MemoryCase *(*addProcessFunction)() = args->addProcessFunction;
 	srand((unsigned) time(&t));
 	for(;args->numberOfProcesses;(args->numberOfProcesses)--){
+
+		pthread_mutex_lock(&mutex_play);
+		while(!play)
+			pthread_cond_wait(&cond_play, &mutex_play);
+		pthread_mutex_unlock(&mutex_play);
+
 		pthread_mutex_lock(&mutex_listModify);
 		(*addProcessFunction)(1 + rand() % (args->maxProcessSize - 1), rand() % args->maxPriorityIndex, args->memory);
 		pthread_mutex_unlock(&mutex_listModify);
@@ -412,6 +432,18 @@ void * plotMemoryStatus(void *vargp){
 	pthread_exit((void *)NULL);	
 }
 
+void pauseSimulation(void){
+	pthread_mutex_lock(&mutex_play);
+	play = false;
+	pthread_mutex_unlock(&mutex_play);
+}
+
+void runSimulation(void){
+	pthread_mutex_lock(&mutex_play);
+	play = true;
+	pthread_cond_signal(&cond_play);
+	pthread_mutex_unlock(&mutex_play);
+}
 
 
 

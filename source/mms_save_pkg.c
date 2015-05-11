@@ -3,7 +3,6 @@
 #include "mms_best_fit_insertion.h"
 #include "mms_worst_fit_insertion.h"
 #include "mms_first_fit_insertion.h"
-#include "mms_terminal_log_functions.h"
 #include <stdlib.h>
 
 /*  Header:
@@ -53,7 +52,6 @@ Memory *dropSimulationFromFile(FILE *arq, rcp_arg *keepOldArgs, insertionMode *f
 	processID id;
 	space begin;
 	
-
 	numberOfCases = (unsigned int) getFileInt(arq);
 	available = (numberOfSpaces) getFileInt(arq);
 	inUse = (numberOfSpaces) getFileInt(arq);
@@ -66,8 +64,6 @@ Memory *dropSimulationFromFile(FILE *arq, rcp_arg *keepOldArgs, insertionMode *f
 	maxTimeCreation = (_program_time) getFileInt(arq);
 
 	memory = createAndSetMemory(available, inUse, running, total, nullMemoryCase(), nullMemoryCase(), nullMemoryCase());
-
-	
 
 	keepOldArgs->numberOfProcesses = toCreate;
 	keepOldArgs->maxProcessSize = maxSize;
@@ -133,7 +129,6 @@ void sintetizeMemoryPointers(Memory *memory){
 		runner->prev->next = runner;
 		runner = runner->prev;
 	}
-	/*printMemoryTerminal(memory);*/
 }
 
 void sintetizeHoleCasePointers(Memory *memory){
@@ -144,15 +139,6 @@ void sintetizeHoleCasePointers(Memory *memory){
 		runner = ((Hole *)(runner->holeOrProcess))->prevHoleCase; 
 	}
 	
-	printHoleList(memory->firstHoleCase);
-}
-
-void printProcess(Memory *memory){
-	MemoryCase *runner = memory->firstProcessCase;
-	do{
-		printf("\n\nProcessID: %lu", ((Process *)(runner->holeOrProcess))->id);
-		runner = ((Process *)(runner->holeOrProcess))->nextProcessCase;
-	}while(runner != memory->firstProcessCase);
 }
 
 void sintetizeProcessCasePointers(Memory *memory){
@@ -161,7 +147,6 @@ void sintetizeProcessCasePointers(Memory *memory){
 		((Process *)(((Process *)(runner->holeOrProcess))->prevProcessCase->holeOrProcess))->nextProcessCase = runner;
 		runner = ((Process *)(runner->holeOrProcess))->prevProcessCase;
 	}
-	printProcess(memory);
 	bubbleSortForProcessPriority(memory);
 }
 
@@ -169,10 +154,7 @@ void bubbleSortForProcessPriority(Memory *memory){
 	MemoryCase *runner = memory->firstProcessCase;
 	MemoryCase *limit = ((Process *)(runner->holeOrProcess))->prevProcessCase;
 	MemoryCase *nextAux;
-	MemoryCase *prevAux;	
-
-	printf("\n\nRunner ID: %lu , limit ID: %lu\n\n", ((Process *)(runner->holeOrProcess))->id,
-													 ((Process *)(limit->holeOrProcess))->id);
+	MemoryCase *prevAux;
 
 	((Process *)(((Process *)(memory->firstProcessCase->holeOrProcess))->prevProcessCase->holeOrProcess))->nextProcessCase = nullMemoryCase();
 	((Process *)(memory->firstProcessCase->holeOrProcess))->prevProcessCase = nullMemoryCase();
@@ -202,20 +184,15 @@ void bubbleSortForProcessPriority(Memory *memory){
 					memory->firstProcessCase = nextAux;
 
 				if(nextAux == limit){
-					printf("\n\nBREAK\n\n");
 					runner = limit;
 					continue;
 				}
 			}
 			else{
-				printf("\n\nMOTHERFUCKER\n\n");
 				runner = ((Process *)(runner->holeOrProcess))->nextProcessCase;
-				printf("\n\nMOTHERFUCKER\n\n");
 			}
 		}
-		printf("\n\nVIROU\n\n");
 	}
-	printf("\n\nSAIU\n\n");
 }
 
 
