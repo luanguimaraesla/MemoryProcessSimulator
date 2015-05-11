@@ -2,3 +2,4 @@ bin/simulator
 *~
 .gitignore
 obj/*.o
+*.txt
