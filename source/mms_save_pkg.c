@@ -38,6 +38,42 @@ char getFileChar(FILE *arq){
 	return c;
 }
 
+unsigned int getNumberOfMemoryCases(Memory *memory){
+	MemoryCase *runner = memory->begin;
+	unsigned int counter = 0;	
+	
+	do{
+		counter++;
+		runner = runner->next;
+	}while(runner != memory->begin);
+	return counter;
+}
+
+void pushMemoryToFile(FILE *arq, rcp_arg *keepCurrentArgs, insertionMode *functionID){
+	Memory* memory = keepCurrentArgs->memory;	
+
+	writeFileInt(getNumberOfMemoryCases(memory), arq);
+	writeFileInt(memory->available, arq);
+	writeFileInt(memory->inUse, arq);
+	writeFileInt(memory->running, arq);
+	writeFileInt(memory->total, arq);
+	writeFileInt(*functionID, arq);
+	writeFileInt(keepCurrentArgs->numberOfProcesses, arq);
+	writeFileInt(keepCurrentArgs->maxProcessSize, arq);
+	writeFileInt(keepCurrentArgs->maxPriorityIndex, arq);
+	writeFileInt(keepCurrentArgs->maxProcessGenerateSleep, arq);
+	
+
+}
+
+void writeFileInt(unsigned long number, FILE *arq){
+	fprintf(arq, "%lu ", number);	
+}
+
+void writeFileChar(char letter, FILE *arq){
+	fprintf(arq, "%c ", letter);
+}
+
 Memory *dropSimulationFromFile(FILE *arq, rcp_arg *keepOldArgs, insertionMode *functionID){
 	Memory *memory;
 	MemoryCase *prevCase = nullMemoryCase();
@@ -194,6 +230,9 @@ void bubbleSortForProcessPriority(Memory *memory){
 		}
 	}
 }
+
+/*-----------------------------------------------------------------------------------------------------------------------*/
+
 
 
 

@@ -37,6 +37,7 @@ void * randomCreateProcesses(void *vargp);
 void * plotMemoryStatus(void *vargp);
 void pauseSimulation(void);
 void runSimulation(void);
+int simulationMenu(void);
 
 /*-----------------------------MAIN-----------------------------*
  *                                                              *
@@ -70,7 +71,7 @@ int main(void){
 	Memory *memory;
 	rcp_arg args;
 	pthread_t processesCreation, frameUpdate;
-	bool frame_update = true;
+	bool frame_update = true, toExit = false;
 	fu_arg frame_update_args;
 	numberOfSpaces memory_size;
 	int insertionModeID;
@@ -101,10 +102,49 @@ int main(void){
 	pthread_create(&processesCreation, NULL, randomCreateProcesses, &args);
 	pthread_create(&frameUpdate, NULL, plotMemoryStatus, &frame_update_args);
 
-	sleep(20);
-	pauseSimulation();
-	sleep(20);
-	runSimulation();
+	while(!toExit){
+		switch(simulationMenu()){
+			case 1:
+				if(play){
+					pauseSimulation();
+					printf("\e[H\e[2J");
+					printf("Simulation is paused!");
+					printf("\n\n\n\n\n\n");
+					sleep(2);
+				}
+				else{
+					printf("\e[H\e[2J");
+					printf("Sorry, it's already paused.");
+					printf("\n\n\n\n\n\n");
+					sleep(2);
+				}
+				break;
+			case 2:
+				if(!play){
+					runSimulation();
+					printf("\e[H\e[2J");
+					printf("Simulation is running!");
+					printf("\n\n\n\n\n\n");
+					sleep(2);
+				}
+				else{
+					printf("\e[H\e[2J");
+					printf("Sorry, it's already running.");
+					printf("\n\n\n\n\n\n");
+					sleep(2);
+				}
+				break;
+			case 3:
+				printf("\e[H\e[2J");
+				printf("The function will be ready to use soon as possible!");
+				printf("\n\n\n\n\n\n");
+				sleep(2);
+				break;
+			default:
+				printf("EXITING...\n");
+				toExit = true;
+		}
+	}
 
 	pthread_join(processesCreation, NULL);
 
@@ -140,7 +180,8 @@ int main(void){
 
 FILE* fileMenu(void){
 	int option;
-	char fileName[30];	
+	char fileName[30];
+	printf("\e[H\e[2J");	
 	printf("0. Exit.\n1. Run simulation from file.\n2. New simulation.\n\nSelect: ");
 	do{
 		scanf("%d", &option);
@@ -155,6 +196,19 @@ FILE* fileMenu(void){
 	}
 	
 	return NULL;
+}
+
+int simulationMenu(void){
+	int option;
+	
+	printf("\e[H\e[2J");
+	printf("----> Memory Simulator Menu <----\n");
+	printf("0. Exit.\n1. Pause\n2. Run\n3. Save\nSelect: ");
+	do{
+		scanf("%d", &option);
+	}while(option < 0 || option > 3);
+	
+	return option;
 }
 
 void printInsertionModeSelectionMenu(void){
@@ -367,8 +421,17 @@ void * executeProcess(void *vargp){
      *----------------------------------------------------------------------------*/
 	execution_arg *exec_arg = (execution_arg *) vargp;	
 	time_t t;
+	_program_time processTime;
 	srand((unsigned) time(&t));
-	sleep(1 + rand() % (MAX_PROCESS_TIME - 1));
+	processTime = 1 + rand() % (MAX_PROCESS_TIME - 1);
+
+	while(processTime--){
+		pthread_mutex_lock(&mutex_play);
+		while(!play)
+			pthread_cond_wait(&cond_play, &mutex_play);
+		pthread_mutex_unlock(&mutex_play);		
+		sleep(1);
+	}
 
 	pthread_mutex_lock(&mutex_listModify);
 	endProcess(exec_arg->selfCase, exec_arg->memory);
@@ -441,7 +504,7 @@ void pauseSimulation(void){
 void runSimulation(void){
 	pthread_mutex_lock(&mutex_play);
 	play = true;
-	pthread_cond_signal(&cond_play);
+	pthread_cond_broadcast(&cond_play);
 	pthread_mutex_unlock(&mutex_play);
 }
 
