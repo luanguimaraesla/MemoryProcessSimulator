@@ -49,7 +49,7 @@ unsigned int getNumberOfMemoryCases(Memory *memory){
 	return counter;
 }
 
-void pushMemoryToFile(FILE *arq, rcp_arg *keepCurrentArgs, insertionMode *functionID){
+void pushMemoryToFile(FILE *arq, rcp_arg *keepCurrentArgs, insertionMode functionID){
 	Memory* memory = keepCurrentArgs->memory;	
 
 	writeFileInt(getNumberOfMemoryCases(memory), arq);
@@ -57,13 +57,34 @@ void pushMemoryToFile(FILE *arq, rcp_arg *keepCurrentArgs, insertionMode *functi
 	writeFileInt(memory->inUse, arq);
 	writeFileInt(memory->running, arq);
 	writeFileInt(memory->total, arq);
-	writeFileInt(*functionID, arq);
+	writeFileInt(functionID, arq);
 	writeFileInt(keepCurrentArgs->numberOfProcesses, arq);
 	writeFileInt(keepCurrentArgs->maxProcessSize, arq);
 	writeFileInt(keepCurrentArgs->maxPriorityIndex, arq);
 	writeFileInt(keepCurrentArgs->maxProcessGenerateSleep, arq);
+	writeFileMemoryCases(memory, arq);
 	
+	fclose(arq);	
+}
 
+void writeFileMemoryCases(Memory *memory, FILE *arq){
+	MemoryCase *runner = memory->begin;
+	
+	do{
+		if(runner->type == process){
+			writeFileChar('P', arq);
+			writeFileInt(((Process *)(runner->holeOrProcess))->id, arq);
+			writeFileInt(((Process *)(runner->holeOrProcess))->index, arq);
+			writeFileInt(runner->begin, arq);
+			writeFileInt(runner->size, arq);
+		}
+		else{
+			writeFileChar('H', arq);
+			writeFileInt(runner->begin, arq);
+			writeFileInt(runner->size, arq);
+		}
+		runner = runner->next;
+	}while(runner != memory->begin);
 }
 
 void writeFileInt(unsigned long number, FILE *arq){
@@ -155,6 +176,7 @@ Memory *dropSimulationFromFile(FILE *arq, rcp_arg *keepOldArgs, insertionMode *f
 	sintetizeHoleCasePointers(memory);
 	sintetizeProcessCasePointers(memory);
 	
+	fclose(arq);
 	return memory;
 }
 
