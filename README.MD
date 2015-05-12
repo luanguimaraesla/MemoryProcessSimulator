@@ -30,7 +30,7 @@ O funcionamento do programa está descrito a seguir:
 * Forneça o tempo máximo (T), em segundos, para o intervalo entre dois processos (tempos randômicos serão gerados de 0 à T).
 * Pressione o botão de inicialização e veja. 
 
-### Nova simulação
+### Carregando um arquivo
 * Escolha, entre as opções de execução, carregar um arquivo:
 	O arquivo deve ter o caminho relativo ao diretório raiz.
 * Se o arquivo for válido, o programa iniciará automaticamente, basta pressionar o botão de inicialização.
