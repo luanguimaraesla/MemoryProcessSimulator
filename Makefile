@@ -4,7 +4,7 @@ SRCFOLDER := ./source/
 OBJFOLDER := ./obj/
 
 COMPILER := gcc
-FLAGS := -Wall -ansi -pedantic -I$(INCFOLDER)
+FLAGS := -Wall -ansi -I$(INCFOLDER)
 CFLAGS := -pthread -lX11
 
 SRCFILES := $(wildcard source/*.c)

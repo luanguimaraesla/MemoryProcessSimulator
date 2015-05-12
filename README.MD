@@ -23,7 +23,7 @@ O funcionamento do programa está descrito a seguir:
 
 * Escolha, entre as opções de execução, uma nova simulação.
 * Insira o tamanho da memória que deseja criar em bytes.
-* Escolha o tipo de algoritmo de inserção deseja usar (first-fit, best-fit, worst-fit).
+* Escolha o tipo de algoritmo de inserção que deseja usar (first-fit, best-fit, worst-fit).
 * Digite quantos processos serão criados no decorrer do programa.
 * Digite o tamanho (S) máximo de um processo (valores randômicos serão gerados de 1 à S).
 * Estabeleça um limite (X) para o intervalo de valores válidos para definir prioridades de processos (valores randômicos serão gerados de 0 à X).

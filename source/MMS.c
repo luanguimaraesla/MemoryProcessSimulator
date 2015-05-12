@@ -73,7 +73,7 @@ int main(void){
 	Memory *memory;
 	rcp_arg args;
 	pthread_t processesCreation, frameUpdate, buttonEventsThread;
-	bool frame_update = true, toExit = false, button_event = true;
+	bool frame_update = true, button_event = true;
 	fu_arg frame_update_args;
 	numberOfSpaces memory_size;
 	insertionMode insertionModeID;
@@ -109,79 +109,19 @@ int main(void){
 	pthread_create(&frameUpdate, NULL, plotMemoryStatus, &frame_update_args);
 	pthread_create(&buttonEventsThread, NULL, buttonEvents, &frame_update_args);
 
-	/*while(!toExit){
-		switch(simulationMenu()){
-			case 1:
-				if(play){
-					pauseSimulation(frame_update_args.ui_params);
-					printf("\e[H\e[2J");
-					printf("Simulation is paused!");
-					printf("\n\n\n\n\n\n");
-					sleep(2);
-				}
-				else{
-					printf("\e[H\e[2J");
-					printf("Sorry, it's already paused.");
-					printf("\n\n\n\n\n\n");
-					sleep(2);
-				}
-				break;
-			case 2:
-				if(!play){
-					runSimulation(frame_update_args.ui_params);
-					printf("\e[H\e[2J");
-					printf("Simulation is running!");
-					printf("\n\n\n\n\n\n");
-					sleep(2);
-				}
-				else{
-					printf("\e[H\e[2J");
-					printf("Sorry, it's already running.");
-					printf("\n\n\n\n\n\n");
-					sleep(2);
-				}
-				break;
-			case 3:
-				if(play){
-					pauseSimulation();
-					printf("\e[H\e[2J");
-					printf("Simulation is paused!");
-					printf("\n\n\n\n\n\n");
-					sleep(2);
-				}
-				printf("\e[H\e[2J");
-				pushMemoryToFile(getFile("w"), &args, insertionModeID);
-				printf("Done!");
-				printf("\n\n\n\n\n\n");
-				sleep(2);
-				break;
-			default:
-				printf("\nEXITING...");
-				printf("\n\n\n");
-				frame_update = false;
-				pthread_cond_destroy(&cond_play);
-				pthread_mutex_destroy(&mutex_play);
-				pthread_mutex_destroy(&mutex_listModify);
-				return 0;
-		}
-	}*/
-
 	pthread_join(processesCreation, NULL);
 
 	while(memory->firstProcessCase);
 	sleep(1);
 	frame_update = false;
-	button_event = false;
-	sleep(3);
 	pthread_join(frameUpdate, NULL);
-	pthread_join(buttonEventsThread, NULL);
 
 	pthread_cond_destroy(&cond_play);
 	pthread_mutex_destroy(&mutex_play);
 	pthread_mutex_destroy(&mutex_listModify);
-	fclose(archive);
 	pthread_exit((void *)NULL);
-	return 1;
+
+	return 0;
 }
 
 /*-------------------------MENU FUNCTIONS-----------------------*
@@ -565,11 +505,12 @@ void * buttonEvents(void *vargp){
 			        }
 			        if(x > 10 && x < 110 && y > 140 && y < 170){
 			        	pauseSimulation(args -> ui_params);
+						printf("\e[H\e[2J");
 			        	pushMemoryToFile(getFile("w"), &(*args->aux), args->insertionID);
 						printf("Done!!");
-						printf("\n\n\n\n\n\n");
+						printf("\n\n\n");
 						sleep(2);
-						runSimulation(args->ui_params);
+						/*runSimulation(args->ui_params);*/
 			        }
 	        	break;
 	        }
