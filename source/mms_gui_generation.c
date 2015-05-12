@@ -2,12 +2,13 @@
 #include "mms_terminal_log_functions.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 void printMemory(Memory *memory, ui_param *ui_params){
 	MemoryCase *firstCase = memory->begin;
 	static int green_rect_count;
 	static int black_rect_count;
-	static char available[15], used[15], running[15], total[15];
+	static char available[15], used[15], running[15], total[15], status[15];
 	static XColor black_col, green_col, red_col;
 	static Colormap colormap_black, colormap, colormap_red;
 	static GC black_gc, green_gc, red_gc;
@@ -15,6 +16,7 @@ void printMemory(Memory *memory, ui_param *ui_params){
 	static double begin, size;
 	static double end, end_2;
 	static XRectangle r, r2;
+	Font font;
 	XRectangle *green_rects = (XRectangle *) malloc (sizeof(XRectangle) * memory->running);
 	XRectangle *black_rects = (XRectangle *) malloc (sizeof(XRectangle) * memory->running);
 	if(setColor){
@@ -137,7 +139,7 @@ void printMemory(Memory *memory, ui_param *ui_params){
 	sprintf(total, "%-14lu",memory->total);
 
 	/*limpa a area de string*/
-	XClearArea(ui_params->dis, ui_params->win, 0,0, 140, 180, 0);
+	XClearArea(ui_params->dis, ui_params->win, 0,0, 140, 90, 0);
 
 	/*desenha strings na tela.*/
 	XDrawString(ui_params->dis, ui_params->win, green_gc, 10, 20, "Avaible: ", 8);
@@ -148,6 +150,15 @@ void printMemory(Memory *memory, ui_param *ui_params){
 	XDrawString(ui_params->dis, ui_params->win, green_gc, 70, 50, running, 8);
 	XDrawString(ui_params->dis, ui_params->win, green_gc, 10, 75, "Total:  ", 8);
 	XDrawString(ui_params->dis, ui_params->win, green_gc, 70, 75, total, 8);
+
+	XFillRectangle(ui_params->dis, ui_params->win, green_gc, 10, 90, 100, 40);
+	if(ui_params->status == 0)
+		strcpy(status, "Running");
+	else
+		strcpy(status, "Paused ");
+	font = XLoadFont(ui_params->dis, "*x16");
+	XSetFont(ui_params->dis,black_gc,font);
+	XDrawString(ui_params->dis, ui_params->win, black_gc, 30, 120, status, 7);
 	XFlush(ui_params->dis);
 
 	/*printMemoryTerminal(memory);*/

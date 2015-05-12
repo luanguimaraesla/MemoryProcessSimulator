@@ -35,9 +35,10 @@ MemoryCase * addProcessBestFit(numberOfSpaces size, priority index, Memory *memo
 void * executeProcess(void *vargp);
 void * randomCreateProcesses(void *vargp);
 void * plotMemoryStatus(void *vargp);
-void pauseSimulation(void);
-void runSimulation(void);
+void pauseSimulation(ui_param *ui_params);
+void runSimulation(ui_param *ui_params);
 int simulationMenu(void);
+void * buttonEvents(void * vargp);
 
 /*-----------------------------MAIN-----------------------------*
  *                                                              *
@@ -70,14 +71,14 @@ int main(void){
 	FILE *archive;
 	Memory *memory;
 	rcp_arg args;
-	pthread_t processesCreation, frameUpdate;
-	bool frame_update = true, toExit = false;
+	pthread_t processesCreation, frameUpdate, buttonEventsThread;
+	bool frame_update = true, toExit = false, button_event = true;
 	fu_arg frame_update_args;
 	numberOfSpaces memory_size;
 	int insertionModeID;
 
 	archive = fileMenu();
-	
+	XInitThreads();
 	if(!archive){
 		memory_size = getSize();
 		memory = createMemory(memory_size);
@@ -93,7 +94,9 @@ int main(void){
 	frame_update_args.memory = memory;
 	frame_update_args.frame_update = &frame_update;
 	frame_update_args.ui_params = createUI();
-	frame_update_args.ui_params -> byte_size = ((double)MEMORY_UI_X/(double)memory_size);;
+	frame_update_args.ui_params -> byte_size = ((double)MEMORY_UI_X/(double)memory_size);
+	frame_update_args.ui_params -> status = 0;
+	frame_update_args.ui_params -> button_event = &button_event;
 	
 	pthread_mutex_init(&mutex_listModify, NULL);
 	pthread_mutex_init(&mutex_play, NULL);
@@ -101,12 +104,13 @@ int main(void){
 
 	pthread_create(&processesCreation, NULL, randomCreateProcesses, &args);
 	pthread_create(&frameUpdate, NULL, plotMemoryStatus, &frame_update_args);
+	pthread_create(&buttonEventsThread, NULL, buttonEvents, &frame_update_args);
 
-	while(!toExit){
+	/*while(!toExit){
 		switch(simulationMenu()){
 			case 1:
 				if(play){
-					pauseSimulation();
+					pauseSimulation(frame_update_args.ui_params);
 					printf("\e[H\e[2J");
 					printf("Simulation is paused!");
 					printf("\n\n\n\n\n\n");
@@ -121,7 +125,7 @@ int main(void){
 				break;
 			case 2:
 				if(!play){
-					runSimulation();
+					runSimulation(frame_update_args.ui_params);
 					printf("\e[H\e[2J");
 					printf("Simulation is running!");
 					printf("\n\n\n\n\n\n");
@@ -144,15 +148,22 @@ int main(void){
 				printf("EXITING...\n");
 				toExit = true;
 		}
-	}
+	}*/
 
 	pthread_join(processesCreation, NULL);
+	
 
 	while(memory->firstProcessCase);
 	sleep(1);
 	frame_update = false;
+	button_event = false;
+	sleep(3);
 	pthread_join(frameUpdate, NULL);
-
+	pthread_cancel(buttonEventsThread);
+	pthread_join(buttonEventsThread, NULL);
+	
+	
+	
 	pthread_cond_destroy(&cond_play);
 	pthread_mutex_destroy(&mutex_play);
 	pthread_mutex_destroy(&mutex_listModify);
@@ -495,17 +506,54 @@ void * plotMemoryStatus(void *vargp){
 	pthread_exit((void *)NULL);	
 }
 
-void pauseSimulation(void){
+void pauseSimulation(ui_param *ui_params){
 	pthread_mutex_lock(&mutex_play);
+	ui_params -> status = 1;
 	play = false;
 	pthread_mutex_unlock(&mutex_play);
 }
 
-void runSimulation(void){
+void runSimulation(ui_param *ui_params){
 	pthread_mutex_lock(&mutex_play);
+	ui_params -> status = 0;
 	play = true;
 	pthread_cond_broadcast(&cond_play);
 	pthread_mutex_unlock(&mutex_play);
+}
+
+void * buttonEvents(void *vargp){
+    int x=-1,y=-1;
+    XEvent event;
+    fu_arg *args = (fu_arg *) vargp;
+
+    XGrabPointer(args->ui_params->dis, args->ui_params->win, False, ButtonPressMask, GrabModeAsync,
+         GrabModeAsync, None, None, CurrentTime);
+	
+    XSelectInput(args->ui_params->dis, args->ui_params->win, ButtonPressMask | ButtonReleaseMask);
+    /*sleep para esperar que a janela principal seja desenhada.*/
+    sleep(5);
+    while(*(args->ui_params->button_event)){
+    XNextEvent(args->ui_params->dis,&event);
+	    switch(event.type){
+	    case ButtonPress:
+	        switch(event.xbutton.button){
+	        	case Button1:
+	        		x=event.xbutton.x;
+	        		y=event.xbutton.y;
+	        		if(x > 10 && x < 110 && y > 90 && y < 130){
+			        	if(play)
+			        		pauseSimulation(args ->ui_params);
+			        	else
+			        		runSimulation(args ->ui_params);
+			        }
+	        	break;
+	        }
+	        break;
+	    default:
+	        break;
+	    }
+	}
+    pthread_exit((void *)NULL);
 }
 
 

@@ -14,6 +14,8 @@ struct UIParameters{
 	Display *dis;
 	Window win;
 	double byte_size;
+	int status;
+	bool * button_event;
 };
 
 typedef struct UIParameters ui_param;
