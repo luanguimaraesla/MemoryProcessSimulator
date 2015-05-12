@@ -27,7 +27,7 @@ O funcionamento do programa está descrito a seguir:
 * Digite quantos processos serão criados no decorrer do programa.
 * Digite o tamanho (S) máximo de um processo (valores randômicos serão gerados de 1 à S).
 * Estabeleça um limite (X) para o intervalo de valores válidos para definir prioridades de processos (valores randômicos serão gerados de 0 à X).
-* Forneça o tempo máximo (T), em segundos, para o intervalo entre dois processos (tempos randômicos serão gerados de 0 à T).
+* Forneça o tempo máximo (T), em segundos, para o intervalo de criação entre dois processos (tempos randômicos serão gerados de 0 à T).
 * Pressione o botão de inicialização e veja. 
 
 ### Carregando um arquivo
