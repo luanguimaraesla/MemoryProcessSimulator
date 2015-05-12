@@ -21,6 +21,8 @@ struct FrameUpdateArg{
 	bool * frame_update;
 	struct Memory *memory;
 	struct UIParameters *ui_params;
+	struct RandomCreateProcessesArg *aux;
+	int insertionID;
 };
 
 typedef struct ExecProcessArg execution_arg;

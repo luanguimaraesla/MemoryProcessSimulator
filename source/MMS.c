@@ -96,8 +96,10 @@ int main(void){
 	frame_update_args.frame_update = &frame_update;
 	frame_update_args.ui_params = createUI();
 	frame_update_args.ui_params -> byte_size = ((double)MEMORY_UI_X/(double)memory_size);
-	frame_update_args.ui_params -> status = 0;
+	frame_update_args.ui_params -> status = 1;
 	frame_update_args.ui_params -> button_event = &button_event;
+	frame_update_args.aux = &args;
+	frame_update_args.insertionID = insertionModeID;
 	
 	pthread_mutex_init(&mutex_listModify, NULL);
 	pthread_mutex_init(&mutex_play, NULL);
@@ -555,11 +557,19 @@ void * buttonEvents(void *vargp){
 	        	case Button1:
 	        		x=event.xbutton.x;
 	        		y=event.xbutton.y;
-	        		if(x > 10 && x < 110 && y > 90 && y < 130){
+	        		if(x > 10 && x < 110 && y > 90 && y < 120){
 			        	if(play)
 			        		pauseSimulation(args ->ui_params);
 			        	else
 			        		runSimulation(args ->ui_params);
+			        }
+			        if(x > 10 && x < 110 && y > 140 && y < 170){
+			        	pauseSimulation(args -> ui_params);
+			        	pushMemoryToFile(getFile("w"), &(*args->aux), args->insertionID);
+						printf("Done!!");
+						printf("\n\n\n\n\n\n");
+						sleep(2);
+						runSimulation(args->ui_params);
 			        }
 	        	break;
 	        }

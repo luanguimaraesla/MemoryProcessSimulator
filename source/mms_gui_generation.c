@@ -8,7 +8,7 @@ void printMemory(Memory *memory, ui_param *ui_params){
 	MemoryCase *firstCase = memory->begin;
 	static int green_rect_count;
 	static int black_rect_count;
-	static char available[15], used[15], running[15], total[15], status[15];
+	static char available[15], used[15], running[15], total[15], status[15], save[15];
 	static XColor black_col, green_col, red_col;
 	static Colormap colormap_black, colormap, colormap_red;
 	static GC black_gc, green_gc, red_gc;
@@ -151,15 +151,23 @@ void printMemory(Memory *memory, ui_param *ui_params){
 	XDrawString(ui_params->dis, ui_params->win, green_gc, 10, 75, "Total:  ", 8);
 	XDrawString(ui_params->dis, ui_params->win, green_gc, 70, 75, total, 8);
 
-	XFillRectangle(ui_params->dis, ui_params->win, green_gc, 10, 90, 100, 40);
+	XFillRectangle(ui_params->dis, ui_params->win, green_gc, 10, 90, 100, 30);
+	XFillRectangle(ui_params->dis, ui_params->win, green_gc, 10, 140, 100, 30);
+	
 	if(ui_params->status == 0)
 		strcpy(status, "Running");
 	else
 		strcpy(status, "Paused ");
+
+	strcpy(save, "Save");
+
 	font = XLoadFont(ui_params->dis, "*x16");
 	XSetFont(ui_params->dis,black_gc,font);
-	XDrawString(ui_params->dis, ui_params->win, black_gc, 30, 120, status, 7);
+	XDrawString(ui_params->dis, ui_params->win, black_gc, 30, 110, status, 7);
+	XDrawString(ui_params->dis, ui_params->win, black_gc, 30, 160, save, 4);
 	XFlush(ui_params->dis);
+	
+
 
 	/*printMemoryTerminal(memory);*/
 
