@@ -14,7 +14,8 @@ void sintetizeProcessCasePointers(Memory *memory);
 void bubbleSortForProcessPriority(Memory *memory);
 void writeFileInt(unsigned long number, FILE *arq);
 void writeFileChar(char letter, FILE *arq);
-void pushMemoryToFile(FILE *arq, rcp_arg *keepCurrentArgs, insertionMode *functionID);
+void pushMemoryToFile(FILE *arq, rcp_arg *keepCurrentArgs, insertionMode functionID);
 unsigned int getNumberOfMemoryCases(Memory *memory);
+void writeFileMemoryCases(Memory *memory, FILE *arq);
 
 #endif

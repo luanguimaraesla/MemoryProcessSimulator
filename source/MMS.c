@@ -20,15 +20,15 @@
 pthread_mutex_t mutex_listModify;
 pthread_mutex_t mutex_play;
 pthread_cond_t cond_play;
-bool play = true;
+bool play = false;
 
 void printInsertionModeSelectionMenu(void);
 insertionMode getInsertionMode(void);
 void printMemorySizeMenu(void);
 numberOfSpaces getSize(void);
-void ask_rcp_args(rcp_arg *args);
+insertionMode ask_rcp_args(rcp_arg *args);
 FILE* fileMenu(void);
-void setInsertionMode(int insertionModeID, rcp_arg *args);
+insertionMode setInsertionMode(int insertionModeID, rcp_arg *args);
 MemoryCase * addProcessFirstFit(numberOfSpaces size, priority index, Memory *memory);
 MemoryCase * addProcessWorstFit(numberOfSpaces size, priority index, Memory *memory);
 MemoryCase * addProcessBestFit(numberOfSpaces size, priority index, Memory *memory);
@@ -38,6 +38,7 @@ void * plotMemoryStatus(void *vargp);
 void pauseSimulation(void);
 void runSimulation(void);
 int simulationMenu(void);
+FILE *getFile(const char *str);
 
 /*-----------------------------MAIN-----------------------------*
  *                                                              *
@@ -71,10 +72,10 @@ int main(void){
 	Memory *memory;
 	rcp_arg args;
 	pthread_t processesCreation, frameUpdate;
-	bool frame_update = true, toExit = false;
+	bool frame_update = true;
 	fu_arg frame_update_args;
 	numberOfSpaces memory_size;
-	int insertionModeID;
+	insertionMode insertionModeID;
 
 	archive = fileMenu();
 	
@@ -82,7 +83,7 @@ int main(void){
 		memory_size = getSize();
 		memory = createMemory(memory_size);
 		args.memory = memory;
-		ask_rcp_args(&args);
+		insertionModeID = ask_rcp_args(&args);
 	}
 	else{
 		memory = dropSimulationFromFile(archive, &args, &insertionModeID);
@@ -102,7 +103,7 @@ int main(void){
 	pthread_create(&processesCreation, NULL, randomCreateProcesses, &args);
 	pthread_create(&frameUpdate, NULL, plotMemoryStatus, &frame_update_args);
 
-	while(!toExit){
+	for(;;){
 		switch(simulationMenu()){
 			case 1:
 				if(play){
@@ -135,31 +136,35 @@ int main(void){
 				}
 				break;
 			case 3:
+				if(play){
+					pauseSimulation();
+					printf("\e[H\e[2J");
+					printf("Simulation is paused!");
+					printf("\n\n\n\n\n\n");
+					sleep(2);
+				}
 				printf("\e[H\e[2J");
-				printf("The function will be ready to use soon as possible!");
+				pushMemoryToFile(getFile("w"), &args, insertionModeID);
+				printf("Done!");
 				printf("\n\n\n\n\n\n");
 				sleep(2);
 				break;
 			default:
-				printf("EXITING...\n");
-				toExit = true;
+				printf("\nEXITING...");
+				printf("\n\n\n");
+				frame_update = false;
+				pthread_cond_destroy(&cond_play);
+				pthread_mutex_destroy(&mutex_play);
+				pthread_mutex_destroy(&mutex_listModify);
+				return 0;
 		}
 	}
 
-	pthread_join(processesCreation, NULL);
-
-	while(memory->firstProcessCase);
-	sleep(1);
 	frame_update = false;
 	pthread_join(frameUpdate, NULL);
-
-	pthread_cond_destroy(&cond_play);
-	pthread_mutex_destroy(&mutex_play);
-	pthread_mutex_destroy(&mutex_listModify);
-	fclose(archive);
+	pthread_join(processesCreation, NULL);
 	pthread_exit((void *)NULL);
-	
-	return 0;
+	return 1;
 }
 
 /*-------------------------MENU FUNCTIONS-----------------------*
@@ -180,7 +185,6 @@ int main(void){
 
 FILE* fileMenu(void){
 	int option;
-	char fileName[30];
 	printf("\e[H\e[2J");	
 	printf("0. Exit.\n1. Run simulation from file.\n2. New simulation.\n\nSelect: ");
 	do{
@@ -189,13 +193,17 @@ FILE* fileMenu(void){
 	
 	if(!option)
 		exit(0);
-	else if (option == 1){
-		printf("Enter the file name: ");
-		scanf("%s", fileName);
-		return fopen(fileName, "r");
-	}
+	else if (option == 1)
+		return getFile("r");
 	
 	return NULL;
+}
+
+FILE *getFile(const char *str){
+	char fileName[30];
+	printf("Enter the file name: ");
+	scanf("%s", fileName);
+	return fopen(fileName, str);
 }
 
 int simulationMenu(void){
@@ -221,7 +229,7 @@ insertionMode getInsertionMode(void){
 	printInsertionModeSelectionMenu();
 	do{	
 		scanf("%d", &option);
-	}while(option < 1 && option > 3);
+	}while(option < 1 || option > 3);
 	return option;
 }
 
@@ -236,7 +244,7 @@ numberOfSpaces getSize(void){
 	return size;
 }
 
-void setInsertionMode(int insertionModeID, rcp_arg *args){
+insertionMode setInsertionMode(int insertionModeID, rcp_arg *args){
 	switch(insertionModeID){
 		case 1:
 			args->addProcessFunction = addProcessFirstFit;
@@ -251,11 +259,13 @@ void setInsertionMode(int insertionModeID, rcp_arg *args){
 			printf("\nERROR!\n");
 			exit(1); 
 	}
+
+	return insertionModeID;
 }
 
-void ask_rcp_args(rcp_arg *args){
+insertionMode ask_rcp_args(rcp_arg *args){
 
-	setInsertionMode(getInsertionMode(), args);
+	insertionMode mode = setInsertionMode(getInsertionMode(), args);
 	
 	printf("\nHow many processes do you want to create? ");
 	scanf("%u", &(args->numberOfProcesses));
@@ -269,6 +279,7 @@ void ask_rcp_args(rcp_arg *args){
 	printf("Enter the longest interval between creation processes: ");
 	scanf("%lu", &(args->maxProcessGenerateSleep));
 
+	return mode;
 }
 
 MemoryCase *addProcessFirstFit(numberOfSpaces size, priority index, Memory *memory){
